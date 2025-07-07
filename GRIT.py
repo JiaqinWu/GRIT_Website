@@ -45,11 +45,16 @@ client = gspread.authorize(creds)
 try:
     spreadsheet1 = client.open('Referral Information')
     worksheet1 = spreadsheet1.worksheet('GRIT')
-    grit_df = pd.DataFrame(worksheet1.get_all_records())
+    grit_records = worksheet1.get_all_records()
+    st.write("GRIT records:", grit_records)  # Debug
+    grit_df = pd.DataFrame(grit_records)
     worksheet2 = spreadsheet1.worksheet('IPE')
-    ipe_df = pd.DataFrame(worksheet2.get_all_records())
+    ipe_records = worksheet2.get_all_records()
+    st.write("IPE records:", ipe_records)  # Debug
+    ipe_df = pd.DataFrame(ipe_records)
 except Exception as e:
     st.error(f"Error fetching data from Google Sheets: {str(e)}")
+    st.write("Exception type:", type(e))
 
 def format_phone(phone_str):
     # Remove non-digit characters
