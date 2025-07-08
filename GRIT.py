@@ -119,7 +119,7 @@ if st.session_state.role is None:
     )
 
     role = st.selectbox(
-        "Select your role",
+        "Select your dashboard",
         ["GRIT", "IPE"],
         index=None,
         placeholder="Select option..."
@@ -148,14 +148,14 @@ else:
                 color: #1a237e;
                 letter-spacing: 0.5px;
             '>
-                Role: {st.session_state.role}
+                Dashboard: {st.session_state.role}
             </span>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.sidebar.button("🔄 Switch Role", on_click=lambda: st.session_state.update({
+    st.sidebar.button("🔄 Switch Dashboard", on_click=lambda: st.session_state.update({
         "authenticated": False,
         "role": None,
         "user_email": ""
@@ -272,7 +272,7 @@ else:
                     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
                     margin-bottom: 2em;
                 '>
-                    <img src='https://github.com/JiaqinWu/GRIT_Website/raw/main/logo1.pngg' width='200' style='margin-bottom: 1em;'/>
+                    <img src='https://github.com/JiaqinWu/GRIT_Website/raw/main/logo1.png' width='200' style='margin-bottom: 1em;'/>
                     <h1 style='
                         color: #1a237e;
                         font-family: "Segoe UI", "Arial", sans-serif;
