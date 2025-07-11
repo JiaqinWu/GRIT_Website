@@ -48,10 +48,12 @@ try:
     grit_records = worksheet1.get_all_records()
     #st.write("GRIT records:", grit_records)  # Debug
     grit_df = pd.DataFrame(grit_records)
+    grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
     worksheet2 = spreadsheet1.worksheet('IPE')
     ipe_records = worksheet2.get_all_records()
     #st.write("IPE records:", ipe_records)  # Debug
     ipe_df = pd.DataFrame(ipe_records)
+    ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
 except Exception as e:
     st.error(f"Error fetching data from Google Sheets: {str(e)}")
     #st.write("Exception type:", type(e))
@@ -232,7 +234,6 @@ else:
                 """,
                 unsafe_allow_html=True
             )
-            #st.header("📬 Coordinator Dashboard")
             # Personalized greeting
             if user_info and "GRIT" in user_info:
                 st.markdown(f"""
@@ -254,6 +255,21 @@ else:
                     </span>
                 </div>
                 """, unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            referral_num_grit = grit_df['Youth Name'].nunique()
+            # create column span
+            today = datetime.today()
+            last_year = today - timedelta(days=365)
+            last_month = today - timedelta(days=30)
+            pastyear_request = grit_df[grit_df['Date'] >= last_year].shape[0]
+            pastmonth_request = grit_df[grit_df['Date'] >= last_month].shape[0]
+
+
+            col1.metric(label="# of Total Referrals", value= millify(referral_num_grit, precision=2))
+            col2.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request, precision=2))
+            col3.metric(label="# of Referrals from Last Months", value= millify(pastyear_request, precision=2))
+            style_metric_cards(border_left_color="#DBF227")
+
 
         elif st.session_state.role == "IPE":
             # Add staff content here
@@ -307,3 +323,17 @@ else:
                     </span>
                 </div>
                 """, unsafe_allow_html=True)
+            col1, col2, col3 = st.columns(3)
+            referral_num_ipe = ipe_df['Name of Client'].nunique()
+            # create column span
+            today = datetime.today()
+            last_year = today - timedelta(days=365)
+            last_month = today - timedelta(days=30)
+            pastyear_request_ipe = ipe_df[ipe_df['Date Received'] >= last_year].shape[0]
+            pastmonth_request_ipe = ipe_df[ipe_df['Date Received'] >= last_month].shape[0]
+
+
+            col1.metric(label="# of Total Referrals", value= millify(referral_num_ipe, precision=2))
+            col2.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request_ipe, precision=2))
+            col3.metric(label="# of Referrals from Last Months", value= millify(pastyear_request_ipe, precision=2))
+            style_metric_cards(border_left_color="#DBF227")
