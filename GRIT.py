@@ -266,8 +266,8 @@ else:
 
 
             col1.metric(label="# of Total Referrals", value= millify(referral_num_grit, precision=2))
-            col2.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request, precision=2))
-            col3.metric(label="# of Referrals from Last Months", value= millify(pastyear_request, precision=2))
+            col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request, precision=2))
+            col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request, precision=2))
             style_metric_cards(border_left_color="#DBF227")
 
 
@@ -334,6 +334,6 @@ else:
 
 
             col1.metric(label="# of Total Referrals", value= millify(referral_num_ipe, precision=2))
-            col2.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request_ipe, precision=2))
-            col3.metric(label="# of Referrals from Last Months", value= millify(pastyear_request_ipe, precision=2))
+            col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request_ipe, precision=2))
+            col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request_ipe, precision=2))
             style_metric_cards(border_left_color="#DBF227")
