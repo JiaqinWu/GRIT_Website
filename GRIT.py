@@ -421,7 +421,9 @@ else:
                 if case_notes_available:
                     case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
                     if not case_notes_df.empty:
-                        st.table(case_notes_df)
+                        # Reset index to remove index column from display
+                        case_notes_df_display = case_notes_df.reset_index(drop=True)
+                        st.table(case_notes_df_display)
                     else:
                         st.info("No case notes available for this client.")
                 else:
