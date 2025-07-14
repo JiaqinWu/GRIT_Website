@@ -13,7 +13,12 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
-from mailjet_rest import Client
+
+st.set_page_config(
+        page_title="GRIT Dashboard - OCS",
+        page_icon="https://github.com/JiaqinWu/GRIT_Website/raw/main/logo1.png", 
+        layout="centered"
+    ) 
 
 
 scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
@@ -323,6 +328,8 @@ else:
                     </span>
                 </div>
                 """, unsafe_allow_html=True)
+        
+            
             col1, col2, col3 = st.columns(3)
             referral_num_ipe = ipe_df['Name of Client'].nunique()
             # create column span
@@ -337,3 +344,50 @@ else:
             col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request_ipe, precision=2))
             col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request_ipe, precision=2))
             style_metric_cards(border_left_color="#DBF227")
+
+            # Add client filter in sidebar
+            st.markdown("### 🔍 Filter by Client")
+            unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
+            selected_client = st.selectbox(
+                "Select a client:",
+                list(unique_clients),
+                index=0
+            )
+            
+            # Filter data based on selected client
+            filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
+            
+            if not filtered_df.empty:
+                st.markdown("### 📋 Client Information")
+                
+                # Display main client information (excluding case notes)
+                main_columns = ['Name of Client', 'Type', 'Referral Agent', 'Date Received', 
+                                'Service End Date', 'Consent Signed for GRIT/NVFS', 'Case Manager', 
+                                'Progress Reports Sent to Referring Agent/CM']
+                
+                # Filter columns that exist in the dataframe
+                available_columns = [col for col in main_columns if col in filtered_df.columns]
+                
+                # Create a summary row with the first occurrence of each field
+                summary_data = {}
+                for col in available_columns:
+                    summary_data[col] = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else ""
+                
+                summary_df = pd.DataFrame([summary_data])
+                st.dataframe(summary_df, use_container_width=True)
+                
+                # Display case notes separately
+                st.markdown("### 📝 Case Notes")
+                case_notes_columns = ['Day of Case Note', 'Case Notes']
+                case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
+                
+                if case_notes_available:
+                    case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
+                    if not case_notes_df.empty:
+                        st.dataframe(case_notes_df, use_container_width=True)
+                    else:
+                        st.info("No case notes available for this client.")
+                else:
+                    st.info("Case notes columns not found in the dataset.")
+            else:
+                st.warning(f"No data found for client: {selected_client}")
