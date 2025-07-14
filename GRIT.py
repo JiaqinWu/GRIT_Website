@@ -83,6 +83,14 @@ USERS = {
     "JWu@pwcgov.org": {
         "GRIT": {"password": "Qin88251216", "name": "Jiaqin Wu"},
         "IPE": {"password": "Qin88251216", "name": "Jiaqin Wu"}
+    },
+    "TYasin1@pwcgov.org": {
+        "GRIT": {"password": "TYasin1", "name": "Tauheeda Martin Yasin"},
+        "IPE": {"password": "TYasin1", "name": "Tauheeda Martin Yasin"}
+    },
+    "jkooyoomjian@pwcgov.org": {
+        "GRIT": {"password": "jkooyoomjian", "name": "Jennifer Kooyoomijian"},
+        "IPE": {"password": "jkooyoomjian", "name": "Jennifer Kooyoomiji"}
     }
 }
 
