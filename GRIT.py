@@ -371,28 +371,28 @@ else:
                 # Create narrative display
                 narrative_text = ""
                 for col in available_columns:
-                    value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                    if pd.isna(value) or value == "":
-                        value = "Not specified"
-                    
-                    # Special handling for Progress Reports - make it bullet points
                     if col == 'Progress Reports Sent to Referring Agent/CM':
-                        if pd.notna(value) and value != "" and value != "Not specified":
+                        # Special handling for Progress Reports - collect all non-empty values from all rows
+                        progress_reports = filtered_df[col].dropna().unique()
+                        if len(progress_reports) > 0:
                             narrative_text += f"**{col}:**\n"
-                            # Split by common delimiters and create bullet points
-                            if isinstance(value, str):
-                                # Split by common delimiters like semicolon, comma, or newline
-                                reports = [report.strip() for report in str(value).replace(';', ',').replace('\n', ',').split(',') if report.strip()]
-                                for report in reports:
+                            for report in progress_reports:
+                                if str(report).strip() and str(report).strip() != "nan":
                                     narrative_text += f"• {report}\n"
-                            else:
-                                narrative_text += f"• {value}\n"
                         else:
                             narrative_text += f"**{col}:** Not specified\n"
                     else:
+                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                        if pd.isna(value) or value == "":
+                            value = "Not specified"
                         narrative_text += f"**{col}:** {value}\n"
                 
-                st.markdown(narrative_text)
+                # Display each line separately with proper spacing
+                lines = narrative_text.strip().split('\n')
+                for line in lines:
+                    if line.strip():  # Only display non-empty lines
+                        st.markdown(line)
+                        st.markdown("")  # Add extra spacing between lines
                 
                 # Display case notes separately
                 st.markdown("### 📝 Case Notes")
