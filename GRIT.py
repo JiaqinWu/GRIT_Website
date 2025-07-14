@@ -360,21 +360,39 @@ else:
             if not filtered_df.empty:
                 st.markdown("### 📋 Client Information")
                 
-                # Display main client information (excluding case notes)
+                # Display main client information in narrative format
                 main_columns = ['Name of Client', 'Type', 'Referral Agent', 'Date Received', 
-                                'Service End Date', 'Consent Signed for GRIT/NVFS', 'Case Manager', 
-                                'Progress Reports Sent to Referring Agent/CM']
+                               'Service End Date', 'Consent Signed for GRIT/NVFS', 'Case Manager', 
+                               'Progress Reports Sent to Referring Agent/CM']
                 
                 # Filter columns that exist in the dataframe
                 available_columns = [col for col in main_columns if col in filtered_df.columns]
                 
-                # Create a summary row with the first occurrence of each field
-                summary_data = {}
+                # Create narrative display
+                narrative_text = ""
                 for col in available_columns:
-                    summary_data[col] = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else ""
+                    value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                    if pd.isna(value) or value == "":
+                        value = "Not specified"
+                    
+                    # Special handling for Progress Reports - make it bullet points
+                    if col == 'Progress Reports Sent to Referring Agent/CM':
+                        if pd.notna(value) and value != "" and value != "Not specified":
+                            narrative_text += f"**{col}:**\n"
+                            # Split by common delimiters and create bullet points
+                            if isinstance(value, str):
+                                # Split by common delimiters like semicolon, comma, or newline
+                                reports = [report.strip() for report in str(value).replace(';', ',').replace('\n', ',').split(',') if report.strip()]
+                                for report in reports:
+                                    narrative_text += f"• {report}\n"
+                            else:
+                                narrative_text += f"• {value}\n"
+                        else:
+                            narrative_text += f"**{col}:** Not specified\n"
+                    else:
+                        narrative_text += f"**{col}:** {value}\n"
                 
-                summary_df = pd.DataFrame([summary_data])
-                st.dataframe(summary_df, use_container_width=True)
+                st.markdown(narrative_text)
                 
                 # Display case notes separately
                 st.markdown("### 📝 Case Notes")
