@@ -299,10 +299,30 @@ else:
                 # Create narrative display
                 narrative_text = ""
                 for col in available_columns:
-                    value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                    if pd.isna(value) or value == "":
-                        value = "Not specified"
-                    narrative_text += f"**{col}:** {value}\n"
+                    if col == 'Date':
+                        # Special formatting for Date - YYYY-MM-DD format
+                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                        if pd.notna(value) and value != "Not specified":
+                            try:
+                                # Convert to datetime and format as YYYY-MM-DD
+                                if isinstance(value, str):
+                                    date_obj = pd.to_datetime(value, errors='coerce')
+                                else:
+                                    date_obj = value
+                                if pd.notna(date_obj):
+                                    formatted_date = date_obj.strftime('%Y-%m-%d')
+                                    narrative_text += f"**{col}:** {formatted_date}\n"
+                                else:
+                                    narrative_text += f"**{col}:** {value}\n"
+                            except:
+                                narrative_text += f"**{col}:** {value}\n"
+                        else:
+                            narrative_text += f"**{col}:** Not specified\n"
+                    else:
+                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                        if pd.isna(value) or value == "":
+                            value = "Not specified"
+                        narrative_text += f"**{col}:** {value}\n"
                 
                 # Display each line separately with proper spacing
                 lines = narrative_text.strip().split('\n')
