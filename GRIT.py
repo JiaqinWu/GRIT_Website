@@ -358,7 +358,7 @@ else:
             filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
             
             if not filtered_df.empty:
-                st.markdown("### 📋 Client Information")
+                st.markdown("#### 📋 Client Information")
                 
                 # Display main client information in narrative format
                 main_columns = ['Name of Client', 'Type', 'Referral Agent', 'Date Received', 
@@ -381,6 +381,25 @@ else:
                                     narrative_text += f"• {report}\n"
                         else:
                             narrative_text += f"**{col}:** Not specified\n"
+                    elif col == 'Date Received':
+                        # Special formatting for Date Received - YYYY-MM-DD format
+                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                        if pd.notna(value) and value != "Not specified":
+                            try:
+                                # Convert to datetime and format as YYYY-MM-DD
+                                if isinstance(value, str):
+                                    date_obj = pd.to_datetime(value, errors='coerce')
+                                else:
+                                    date_obj = value
+                                if pd.notna(date_obj):
+                                    formatted_date = date_obj.strftime('%Y-%m-%d')
+                                    narrative_text += f"**{col}:** {formatted_date}\n"
+                                else:
+                                    narrative_text += f"**{col}:** {value}\n"
+                            except:
+                                narrative_text += f"**{col}:** {value}\n"
+                        else:
+                            narrative_text += f"**{col}:** Not specified\n"
                     else:
                         value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
                         if pd.isna(value) or value == "":
@@ -395,17 +414,70 @@ else:
                         st.markdown("")  # Add extra spacing between lines
                 
                 # Display case notes separately
-                st.markdown("### 📝 Case Notes")
+                st.markdown("#### 📝 Case Notes")
                 case_notes_columns = ['Day of Case Note', 'Case Notes']
                 case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
                 
                 if case_notes_available:
                     case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
                     if not case_notes_df.empty:
-                        st.dataframe(case_notes_df, use_container_width=True)
+                        st.table(case_notes_df)
                     else:
                         st.info("No case notes available for this client.")
                 else:
                     st.info("Case notes columns not found in the dataset.")
+                
+                # Add new note section
+                st.markdown("#### 📝 Add New Note")
+                
+                # Date selection for the new note
+                note_date = st.date_input(
+                    "Note Date:",
+                    value=datetime.today().date(),
+                    key="note_date"
+                )
+                
+                # Text area for new note
+                new_note = st.text_area(
+                    "Enter your note:",
+                    height=100,
+                    placeholder="Type your note here...",
+                    key="new_note"
+                )
+                
+                # Add note button
+                if st.button("➕ Add Note", key="add_note_btn"):
+                    if new_note.strip():
+                        try:
+                            # Format the date as string
+                            note_date_str = note_date.strftime('%m/%d/%y')
+                            
+                            # Prepare the new row data
+                            new_row_data = {
+                                'Name of Client': selected_client,
+                                'Day of Case Note': note_date_str,
+                                'Case Notes': new_note.strip()
+                            }
+                            
+                            # Add empty values for other columns to maintain structure
+                            for col in ipe_df.columns:
+                                if col not in new_row_data:
+                                    new_row_data[col] = ''
+                            
+                            # Convert to list in the correct order
+                            new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
+                            
+                            # Append to Google Sheets
+                            worksheet2.append_row(new_row)
+                            
+                            st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                            
+                            # Clear the text area
+                            st.rerun()
+                            
+                        except Exception as e:
+                            st.error(f"❌ Error adding note: {str(e)}")
+                    else:
+                        st.warning("⚠️ Please enter a note before adding.")
             else:
                 st.warning(f"No data found for client: {selected_client}")
