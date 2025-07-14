@@ -81,8 +81,8 @@ def format_phone(phone_str):
 # --- Demo user database
 USERS = {
     "JWu@pwcgov.org": {
-        "GRIT": {"password": "Qin8851216", "name": "Jiaqin Wu"},
-        "IPE": {"password": "Qin8851216", "name": "Jiaqin Wu"}
+        "GRIT": {"password": "Qin88251216", "name": "Jiaqin Wu"},
+        "IPE": {"password": "Qin88251216", "name": "Jiaqin Wu"}
     }
 }
 
