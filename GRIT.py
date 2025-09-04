@@ -101,12 +101,6 @@ if "role" not in st.session_state:
     st.session_state.role = None
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
-if "new_note_text" not in st.session_state:
-    st.session_state.new_note_text = ""
-if "last_selected_youth" not in st.session_state:
-    st.session_state.last_selected_youth = None
-if "last_selected_client" not in st.session_state:
-    st.session_state.last_selected_client = None
 
 # --- Role selection
 if st.session_state.role is None:
@@ -179,8 +173,7 @@ else:
     st.sidebar.button("🔄 Switch Dashboard", on_click=lambda: st.session_state.update({
         "authenticated": False,
         "role": None,
-        "user_email": "",
-        "new_note_text": ""
+        "user_email": ""
     }))
 
     st.markdown("""
@@ -299,12 +292,6 @@ else:
                 index=0
             )
             
-            # Clear note text when youth changes
-            if "last_selected_youth" not in st.session_state:
-                st.session_state.last_selected_youth = selected_youth
-            elif st.session_state.last_selected_youth != selected_youth:
-                st.session_state.new_note_text = ""
-                st.session_state.last_selected_youth = selected_youth
             
             # Filter data based on selected client
             filtered_df = grit_df[grit_df['Youth Name'] == selected_youth].copy()
@@ -382,15 +369,10 @@ else:
                 # Text area for new note
                 new_note = st.text_area(
                     "Enter your note:",
-                    value=st.session_state.new_note_text,
                     height=100,
                     placeholder="Type your note here...",
-                    key="new_note"
+                    key=f"new_note_{selected_youth}"
                 )
-                
-                # Update session state when text area changes
-                if new_note != st.session_state.new_note_text:
-                    st.session_state.new_note_text = new_note
                 
                 # Add note button
                 if st.button("➕ Add Note", key="add_note_btn"):
@@ -420,7 +402,6 @@ else:
                             st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
                             
                             # Clear the text area
-                            st.session_state.new_note_text = ""
                             st.rerun()
                             
                         except Exception as e:
@@ -509,12 +490,6 @@ else:
                 index=0
             )
             
-            # Clear note text when client changes
-            if "last_selected_client" not in st.session_state:
-                st.session_state.last_selected_client = selected_client
-            elif st.session_state.last_selected_client != selected_client:
-                st.session_state.new_note_text = ""
-                st.session_state.last_selected_client = selected_client
             
             # Filter data based on selected client
             filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
@@ -604,15 +579,10 @@ else:
                 # Text area for new note
                 new_note = st.text_area(
                     "Enter your note:",
-                    value=st.session_state.new_note_text,
                     height=100,
                     placeholder="Type your note here...",
-                    key="new_note"
+                    key=f"new_note_{selected_client}"
                 )
-                
-                # Update session state when text area changes
-                if new_note != st.session_state.new_note_text:
-                    st.session_state.new_note_text = new_note
                 
                 # Add note button
                 if st.button("➕ Add Note", key="add_note_btn"):
@@ -642,7 +612,6 @@ else:
                             st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
                             
                             # Clear the text area
-                            st.session_state.new_note_text = ""
                             st.rerun()
                             
                         except Exception as e:
