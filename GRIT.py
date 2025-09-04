@@ -101,6 +101,8 @@ if "role" not in st.session_state:
     st.session_state.role = None
 if "user_email" not in st.session_state:
     st.session_state.user_email = ""
+if "new_note_text" not in st.session_state:
+    st.session_state.new_note_text = ""
 
 # --- Role selection
 if st.session_state.role is None:
@@ -368,10 +370,15 @@ else:
                 # Text area for new note
                 new_note = st.text_area(
                     "Enter your note:",
+                    value=st.session_state.new_note_text,
                     height=100,
                     placeholder="Type your note here...",
                     key="new_note"
                 )
+                
+                # Update session state when text area changes
+                if new_note != st.session_state.new_note_text:
+                    st.session_state.new_note_text = new_note
                 
                 # Add note button
                 if st.button("➕ Add Note", key="add_note_btn"):
@@ -401,6 +408,7 @@ else:
                             st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
                             
                             # Clear the text area
+                            st.session_state.new_note_text = ""
                             st.rerun()
                             
                         except Exception as e:
@@ -577,10 +585,15 @@ else:
                 # Text area for new note
                 new_note = st.text_area(
                     "Enter your note:",
+                    value=st.session_state.new_note_text,
                     height=100,
                     placeholder="Type your note here...",
                     key="new_note"
                 )
+                
+                # Update session state when text area changes
+                if new_note != st.session_state.new_note_text:
+                    st.session_state.new_note_text = new_note
                 
                 # Add note button
                 if st.button("➕ Add Note", key="add_note_btn"):
@@ -610,6 +623,7 @@ else:
                             st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
                             
                             # Clear the text area
+                            st.session_state.new_note_text = ""
                             st.rerun()
                             
                         except Exception as e:
