@@ -403,6 +403,7 @@ else:
                                 worksheet1.append_row(new_row)
                                 
                                 st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                st.rerun()
                                 
                             except Exception as e:
                                 st.error(f"❌ Error adding note: {str(e)}")
@@ -613,6 +614,7 @@ else:
                                 worksheet2.append_row(new_row)
                                 
                                 st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                st.rerun()
                                 
                             except Exception as e:
                                 st.error(f"❌ Error adding note: {str(e)}")
