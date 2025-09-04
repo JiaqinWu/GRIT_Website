@@ -359,55 +359,55 @@ else:
                 # Add new note section
                 st.markdown("#### 📝 Add New Note")
                 
-                # Date selection for the new note
-                note_date = st.date_input(
-                    "Note Date:",
-                    value=datetime.today().date(),
-                    key="note_date"
-                )
-                
-                # Text area for new note
-                new_note = st.text_area(
-                    "Enter your note:",
-                    height=100,
-                    placeholder="Type your note here...",
-                    key=f"new_note_{selected_youth}"
-                )
-                
-                # Add note button
-                if st.button("➕ Add Note", key="add_note_btn"):
-                    if new_note.strip():
-                        try:
-                            # Format the date as string
-                            note_date_str = note_date.strftime('%m/%d/%y')
-                            
-                            # Prepare the new row data
-                            new_row_data = {
-                                'Youth Name': selected_youth,
-                                'Day of Case Note': note_date_str,
-                                'Case Notes': new_note.strip()
-                            }
-                            
-                            # Add empty values for other columns to maintain structure
-                            for col in grit_df.columns:
-                                if col not in new_row_data:
-                                    new_row_data[col] = ''
-                            
-                            # Convert to list in the correct order
-                            new_row = [new_row_data.get(col, '') for col in grit_df.columns]
-                            
-                            # Append to Google Sheets
-                            worksheet1.append_row(new_row)
-                            
-                            st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
-                            
-                            # Clear the text area
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"❌ Error adding note: {str(e)}")
-                    else:
-                        st.warning("⚠️ Please enter a note before adding.")
+                with st.form(key=f"note_form_{selected_youth}"):
+                    # Date selection for the new note
+                    note_date = st.date_input(
+                        "Note Date:",
+                        value=datetime.today().date(),
+                        key=f"note_date_{selected_youth}"
+                    )
+                    
+                    # Text area for new note
+                    new_note = st.text_area(
+                        "Enter your note:",
+                        height=100,
+                        placeholder="Type your note here...",
+                        key=f"new_note_{selected_youth}"
+                    )
+                    
+                    # Add note button
+                    submit_button = st.form_submit_button("➕ Add Note")
+                    
+                    if submit_button:
+                        if new_note.strip():
+                            try:
+                                # Format the date as string
+                                note_date_str = note_date.strftime('%m/%d/%y')
+                                
+                                # Prepare the new row data
+                                new_row_data = {
+                                    'Youth Name': selected_youth,
+                                    'Day of Case Note': note_date_str,
+                                    'Case Notes': new_note.strip()
+                                }
+                                
+                                # Add empty values for other columns to maintain structure
+                                for col in grit_df.columns:
+                                    if col not in new_row_data:
+                                        new_row_data[col] = ''
+                                
+                                # Convert to list in the correct order
+                                new_row = [new_row_data.get(col, '') for col in grit_df.columns]
+                                
+                                # Append to Google Sheets
+                                worksheet1.append_row(new_row)
+                                
+                                st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                
+                            except Exception as e:
+                                st.error(f"❌ Error adding note: {str(e)}")
+                        else:
+                            st.warning("⚠️ Please enter a note before adding.")
             else:
                 st.warning(f"No data found for youth: {selected_youth}")
 
@@ -569,54 +569,54 @@ else:
                 # Add new note section
                 st.markdown("#### 📝 Add New Note")
                 
-                # Date selection for the new note
-                note_date = st.date_input(
-                    "Note Date:",
-                    value=datetime.today().date(),
-                    key="note_date"
-                )
-                
-                # Text area for new note
-                new_note = st.text_area(
-                    "Enter your note:",
-                    height=100,
-                    placeholder="Type your note here...",
-                    key=f"new_note_{selected_client}"
-                )
-                
-                # Add note button
-                if st.button("➕ Add Note", key="add_note_btn"):
-                    if new_note.strip():
-                        try:
-                            # Format the date as string
-                            note_date_str = note_date.strftime('%m/%d/%y')
-                            
-                            # Prepare the new row data
-                            new_row_data = {
-                                'Name of Client': selected_client,
-                                'Day of Case Note': note_date_str,
-                                'Case Notes': new_note.strip()
-                            }
-                            
-                            # Add empty values for other columns to maintain structure
-                            for col in ipe_df.columns:
-                                if col not in new_row_data:
-                                    new_row_data[col] = ''
-                            
-                            # Convert to list in the correct order
-                            new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
-                            
-                            # Append to Google Sheets
-                            worksheet2.append_row(new_row)
-                            
-                            st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
-                            
-                            # Clear the text area
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"❌ Error adding note: {str(e)}")
-                    else:
-                        st.warning("⚠️ Please enter a note before adding.")
+                with st.form(key=f"note_form_{selected_client}"):
+                    # Date selection for the new note
+                    note_date = st.date_input(
+                        "Note Date:",
+                        value=datetime.today().date(),
+                        key=f"note_date_{selected_client}"
+                    )
+                    
+                    # Text area for new note
+                    new_note = st.text_area(
+                        "Enter your note:",
+                        height=100,
+                        placeholder="Type your note here...",
+                        key=f"new_note_{selected_client}"
+                    )
+                    
+                    # Add note button
+                    submit_button = st.form_submit_button("➕ Add Note")
+                    
+                    if submit_button:
+                        if new_note.strip():
+                            try:
+                                # Format the date as string
+                                note_date_str = note_date.strftime('%m/%d/%y')
+                                
+                                # Prepare the new row data
+                                new_row_data = {
+                                    'Name of Client': selected_client,
+                                    'Day of Case Note': note_date_str,
+                                    'Case Notes': new_note.strip()
+                                }
+                                
+                                # Add empty values for other columns to maintain structure
+                                for col in ipe_df.columns:
+                                    if col not in new_row_data:
+                                        new_row_data[col] = ''
+                                
+                                # Convert to list in the correct order
+                                new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
+                                
+                                # Append to Google Sheets
+                                worksheet2.append_row(new_row)
+                                
+                                st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                
+                            except Exception as e:
+                                st.error(f"❌ Error adding note: {str(e)}")
+                        else:
+                            st.warning("⚠️ Please enter a note before adding.")
             else:
                 st.warning(f"No data found for client: {selected_client}")
