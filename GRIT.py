@@ -277,140 +277,238 @@ else:
             pastyear_request = grit_df[grit_df['Date'] >= last_year].shape[0]
             pastmonth_request = grit_df[grit_df['Date'] >= last_month].shape[0]
 
-
             col1.metric(label="# of Total Referrals", value= millify(referral_num_grit, precision=2))
             col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request, precision=2))
             col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request, precision=2))
             style_metric_cards(border_left_color="#DBF227")
 
-            # Add client filter in sidebar
-            st.markdown("### 🔍 Filter by Youth")
-            unique_youths = sorted(grit_df['Youth Name'].dropna().unique())
-            selected_youth = st.selectbox(
-                "Select a youth:",
-                list(unique_youths),
-                index=0
-            )
-            
-            
-            # Filter data based on selected client
-            filtered_df = grit_df[grit_df['Youth Name'] == selected_youth].copy()
-            
-            if not filtered_df.empty:
-                st.markdown("#### 📋 Youth Information")
+            col4, col5 = st.columns(2)
+            with col4:
+                st.markdown('##### Time-series Plot of New Referrals:')
                 
-                # Display main client information in narrative format
-                main_columns = ['Youth Name', 'Date', 'Referring Agent', 'Agency', 'DOB/Age']
+                # Filter data for current calendar year
+                current_year = datetime.now().year
+                current_year_data = grit_df[grit_df['Date'].dt.year == current_year].copy()
                 
-                # Filter columns that exist in the dataframe
-                available_columns = [col for col in main_columns if col in filtered_df.columns]
-                
-                # Create narrative display
-                narrative_text = ""
-                for col in available_columns:
-                    if col == 'Date':
-                        # Special formatting for Date - YYYY-MM-DD format
-                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                        if pd.notna(value) and value != "Not specified":
-                            try:
-                                # Convert to datetime and format as YYYY-MM-DD
-                                if isinstance(value, str):
-                                    date_obj = pd.to_datetime(value, errors='coerce')
-                                else:
-                                    date_obj = value
-                                if pd.notna(date_obj):
-                                    formatted_date = date_obj.strftime('%Y-%m-%d')
-                                    narrative_text += f"**{col}:** {formatted_date}\n"
-                                else:
-                                    narrative_text += f"**{col}:** {value}\n"
-                            except:
-                                narrative_text += f"**{col}:** {value}\n"
-                        else:
-                            narrative_text += f"**{col}:** Not specified\n"
-                    else:
-                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                        if pd.isna(value) or value == "":
-                            value = "Not specified"
-                        narrative_text += f"**{col}:** {value}\n"
-                
-                # Display each line separately with proper spacing
-                lines = narrative_text.strip().split('\n')
-                for line in lines:
-                    if line.strip():  # Only display non-empty lines
-                        st.markdown(line)
-                        st.markdown("")  # Add extra spacing between lines
-                
-                # Display case notes separately
-                st.markdown("#### 📝 Case Notes")
-                case_notes_columns = ['Day of Case Note', 'Case Notes']
-                case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
-                
-                if case_notes_available:
-                    case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
-                    if not case_notes_df.empty:
-                        # Reset index to remove index column from display
-                        case_notes_df_display = case_notes_df.reset_index(drop=True)
-                        st.table(case_notes_df_display)
-                    else:
-                        st.info("No case notes available for this youth.")
+                if not current_year_data.empty:
+                    # Group by month and count referrals
+                    monthly_referrals = current_year_data.groupby(current_year_data['Date'].dt.month).size().reset_index()
+                    monthly_referrals.columns = ['Month', 'Count']
+                    
+                    # Create month names for better display
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    monthly_referrals['Month_Name'] = monthly_referrals['Month'].map(lambda x: month_names[x-1])
+                    
+                    # Create the chart
+                    chart = alt.Chart(monthly_referrals).mark_line(point=True, strokeWidth=3).add_selection(
+                        alt.selection_interval()
+                    ).encode(
+                        x=alt.X('Month:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Referrals'),
+                        tooltip=['Month_Name', 'Count']
+                    ).properties(
+                        width=400,
+                        height=300,
+                        title=f'Monthly New Referrals - {current_year}'
+                    ).interactive()
+                    
+                    st.altair_chart(chart, use_container_width=True)
                 else:
-                    st.info("Case notes columns not found in the dataset.")
+                    st.info(f"No new referrals found for {current_year}")
+            with col5:
+                st.markdown('##### Time-series Plot of New Comments:')
+
+                # Filter data for current calendar year
+                current_year = datetime.now().year
+                current_year_data = grit_df[grit_df['Day of Case Note'].dt.year == current_year].copy()
                 
-                # Add new note section
-                st.markdown("#### 📝 Add New Note")
+                if not current_year_data.empty:
+                    # Group by month and count comments
+                    monthly_comments = current_year_data.groupby(current_year_data['Day of Case Note'].dt.month).size().reset_index()
+                    monthly_comments.columns = ['Month', 'Count']
+                    
+                    # Create month names for better display
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    monthly_comments['Month_Name'] = monthly_comments['Month'].map(lambda x: month_names[x-1])
+                    
+                    # Create the chart
+                    chart = alt.Chart(monthly_comments).mark_line(point=True, strokeWidth=3).add_selection(
+                        alt.selection_interval()
+                    ).encode(
+                        x=alt.X('Month:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Comments'),
+                        tooltip=['Month_Name', 'Count']
+                    ).properties(
+                        width=400,
                 
-                with st.form(key=f"note_form_{selected_youth}"):
-                    # Date selection for the new note
-                    note_date = st.date_input(
-                        "Note Date:",
-                        value=datetime.today().date(),
-                        key=f"note_date_{selected_youth}"
-                    )
-                    
-                    # Text area for new note
-                    new_note = st.text_area(
-                        "Enter your note:",
-                        height=100,
-                        placeholder="Type your note here...",
-                        key=f"new_note_{selected_youth}"
-                    )
-                    
-                    # Add note button
-                    submit_button = st.form_submit_button("➕ Add Note")
+                    st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info(f"No new comments found for {current_year}")
+
+            with st.expander("📝 **Add New Referral**"):
+                st.markdown("### 📝 Add New Referral")
+                with st.form(key="add_referral_form"):
+                    date_referral = st.date_input("Date of Referral:", value=datetime.today().date())
+                    referral_agent = st.text_input("Referring Agent:")
+                    agency = st.text_input("Agency:")
+                    youth_name = st.text_input("Youth Name:")
+                    dob_age = st.text_input("DOB/Age:")
+                    day_of_case_note = st.date_input("Day of Case Note:", value=datetime.today().date())
+                    case_notes = st.text_area("Enter your note:", height=100, placeholder="Type your note here...")
+                    submit_button = st.form_submit_button("➕ Add Referral")
                     
                     if submit_button:
-                        if new_note.strip():
+                        if youth_name.strip() and case_notes.strip():
                             try:
-                                # Format the date as string
-                                note_date_str = note_date.strftime('%m/%d/%y')
-                                
-                                # Prepare the new row data
                                 new_row_data = {
-                                    'Youth Name': selected_youth,
-                                    'Day of Case Note': note_date_str,
-                                    'Case Notes': new_note.strip()
+                                    'Youth Name': youth_name,
+                                    'Date': date_referral,
+                                    'Referring Agent': referral_agent,
+                                    'Agency': agency,
+                                    'DOB/Age': dob_age,
+                                    'Day of Case Note': day_of_case_note,
+                                    'Case Notes': case_notes
                                 }
-                                
-                                # Add empty values for other columns to maintain structure
-                                for col in grit_df.columns:
-                                    if col not in new_row_data:
-                                        new_row_data[col] = ''
-                                
-                                # Convert to list in the correct order
                                 new_row = [new_row_data.get(col, '') for col in grit_df.columns]
-                                
-                                # Append to Google Sheets
                                 worksheet1.append_row(new_row)
-                                
-                                st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                st.success("✅ Referral added successfully!")
                                 st.rerun()
-                                
                             except Exception as e:
-                                st.error(f"❌ Error adding note: {str(e)}")
+                                st.error(f"❌ Error adding referral: {str(e)}")
                         else:
-                            st.warning("⚠️ Please enter a note before adding.")
-            else:
-                st.warning(f"No data found for youth: {selected_youth}")
+                            st.warning("⚠️ Please fill in Youth Name and Case Notes before submitting.")
+
+            with st.expander("📝 **Add New Note**"):
+                # Add client filter in sidebar
+                st.markdown("### 🔍 Filter by Youth")
+                unique_youths = sorted(grit_df['Youth Name'].dropna().unique())
+                selected_youth = st.selectbox(
+                    "Select a youth:",
+                    list(unique_youths),
+                    index=0
+                )
+                
+                
+                # Filter data based on selected client
+                filtered_df = grit_df[grit_df['Youth Name'] == selected_youth].copy()
+                
+                if not filtered_df.empty:
+                    st.markdown("#### 📋 Youth Information")
+                    
+                    # Display main client information in narrative format
+                    main_columns = ['Youth Name', 'Date', 'Referring Agent', 'Agency', 'DOB/Age']
+                    
+                    # Filter columns that exist in the dataframe
+                    available_columns = [col for col in main_columns if col in filtered_df.columns]
+                    
+                    # Create narrative display
+                    narrative_text = ""
+                    for col in available_columns:
+                        if col == 'Date':
+                            # Special formatting for Date - YYYY-MM-DD format
+                            value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                            if pd.notna(value) and value != "Not specified":
+                                try:
+                                    # Convert to datetime and format as YYYY-MM-DD
+                                    if isinstance(value, str):
+                                        date_obj = pd.to_datetime(value, errors='coerce')
+                                    else:
+                                        date_obj = value
+                                    if pd.notna(date_obj):
+                                        formatted_date = date_obj.strftime('%Y-%m-%d')
+                                        narrative_text += f"**{col}:** {formatted_date}\n"
+                                    else:
+                                        narrative_text += f"**{col}:** {value}\n"
+                                except:
+                                    narrative_text += f"**{col}:** {value}\n"
+                            else:
+                                narrative_text += f"**{col}:** Not specified\n"
+                        else:
+                            value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                            if pd.isna(value) or value == "":
+                                value = "Not specified"
+                            narrative_text += f"**{col}:** {value}\n"
+                    
+                    # Display each line separately with proper spacing
+                    lines = narrative_text.strip().split('\n')
+                    for line in lines:
+                        if line.strip():  # Only display non-empty lines
+                            st.markdown(line)
+                            st.markdown("")  # Add extra spacing between lines
+                    
+                    # Display case notes separately
+                    st.markdown("#### 📝 Case Notes")
+                    case_notes_columns = ['Day of Case Note', 'Case Notes']
+                    case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
+                    
+                    if case_notes_available:
+                        case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
+                        if not case_notes_df.empty:
+                            # Reset index to remove index column from display
+                            case_notes_df_display = case_notes_df.reset_index(drop=True)
+                            st.table(case_notes_df_display)
+                        else:
+                            st.info("No case notes available for this youth.")
+                    else:
+                        st.info("Case notes columns not found in the dataset.")
+                    
+                    # Add new note section
+                    st.markdown("#### 📝 Add New Note")
+                    
+                    with st.form(key=f"note_form_{selected_youth}"):
+                        # Date selection for the new note
+                        note_date = st.date_input(
+                            "Note Date:",
+                            value=datetime.today().date(),
+                            key=f"note_date_{selected_youth}"
+                        )
+                        
+                        # Text area for new note
+                        new_note = st.text_area(
+                            "Enter your note:",
+                            height=100,
+                            placeholder="Type your note here...",
+                            key=f"new_note_{selected_youth}"
+                        )
+                        
+                        # Add note button
+                        submit_button = st.form_submit_button("➕ Add Note")
+                        
+                        if submit_button:
+                            if new_note.strip():
+                                try:
+                                    # Format the date as string
+                                    note_date_str = note_date.strftime('%m/%d/%y')
+                                    
+                                    # Prepare the new row data
+                                    new_row_data = {
+                                        'Youth Name': selected_youth,
+                                        'Day of Case Note': note_date_str,
+                                        'Case Notes': new_note.strip()
+                                    }
+                                    
+                                    # Add empty values for other columns to maintain structure
+                                    for col in grit_df.columns:
+                                        if col not in new_row_data:
+                                            new_row_data[col] = ''
+                                    
+                                    # Convert to list in the correct order
+                                    new_row = [new_row_data.get(col, '') for col in grit_df.columns]
+                                    
+                                    # Append to Google Sheets
+                                    worksheet1.append_row(new_row)
+                                    
+                                    st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                    st.rerun()
+                                    
+                                except Exception as e:
+                                    st.error(f"❌ Error adding note: {str(e)}")
+                            else:
+                                st.warning("⚠️ Please enter a note before adding.")
+                else:
+                    st.warning(f"No data found for youth: {selected_youth}")
 
 
         elif st.session_state.role == "IPE":
