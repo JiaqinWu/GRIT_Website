@@ -374,11 +374,11 @@ else:
                             try:
                                 new_row_data = {
                                     'Youth Name': youth_name,
-                                    'Date': date_referral,
+                                    'Date': date_referral.strftime('%m/%d/%Y'),
                                     'Referring Agent': referral_agent,
                                     'Agency': agency,
                                     'DOB/Age': dob_age,
-                                    'Day of Case Note': day_of_case_note,
+                                    'Day of Case Note': day_of_case_note.strftime('%m/%d/%Y'),
                                     'Case Notes': case_notes
                                 }
                                 new_row = [new_row_data.get(col, '') for col in grit_df.columns]
