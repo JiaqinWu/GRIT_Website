@@ -321,7 +321,14 @@ else:
 
                 # Filter data for current calendar year
                 current_year = datetime.now().year
-                current_year_data = grit_df[grit_df['Day of Case Note'].dt.year == current_year].copy()
+                
+                # Check if 'Day of Case Note' column exists and convert to datetime
+                if 'Day of Case Note' in grit_df.columns:
+                    # Convert to datetime if not already
+                    grit_df['Day of Case Note'] = pd.to_datetime(grit_df['Day of Case Note'], errors='coerce')
+                    current_year_data = grit_df[grit_df['Day of Case Note'].dt.year == current_year].copy()
+                else:
+                    current_year_data = pd.DataFrame()  # Empty dataframe if column doesn't exist
                 
                 if not current_year_data.empty:
                     # Group by month and count comments
@@ -342,6 +349,9 @@ else:
                         tooltip=['Month_Name', 'Count']
                     ).properties(
                         width=400,
+                        height=300,
+                        title=f'Monthly New Comments - {current_year}'
+                    ).interactive()
                 
                     st.altair_chart(chart, use_container_width=True)
                 else:
