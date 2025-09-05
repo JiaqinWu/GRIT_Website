@@ -758,7 +758,7 @@ else:
                                     'Case Notes': case_notes
                                 }
                                 new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
-                                 worksheet2.append_row(new_row)
+                                worksheet2.append_row(new_row)
                                 st.success("✅ Referral added successfully!")
                                 st.rerun()
                             except Exception as e:
