@@ -618,147 +618,293 @@ else:
 
 
             col1.metric(label="# of Total Referrals", value= millify(referral_num_ipe, precision=2))
-            col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request_ipe, precision=2))
-            col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request_ipe, precision=2))
+            col2.metric(label="# of Referrals from Last One Year", value= millify(pastyear_request_ipe, precision=2))
+            col3.metric(label="# of Referrals from Last 30 Days", value= millify(pastmonth_request_ipe, precision=2))
             style_metric_cards(border_left_color="#DBF227")
 
-            # Add client filter in sidebar
-            st.markdown("### 🔍 Filter by Client")
-            unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
-            selected_client = st.selectbox(
-                "Select a client:",
-                list(unique_clients),
-                index=0
-            )
-            
-            
-            # Filter data based on selected client
-            filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
-            
-            if not filtered_df.empty:
-                st.markdown("#### 📋 Client Information")
+            col4, col5 = st.columns(2)
+            with col4:
+                st.markdown('##### Time-series Plot of New Referrals:')
                 
-                # Display main client information in narrative format
-                main_columns = ['Name of Client', 'Type', 'Referral Agent', 'Date Received', 
-                               'Service End Date', 'Consent Signed for GRIT/NVFS', 'Case Manager', 
-                               'Progress Reports Sent to Referring Agent/CM']
+                # Filter data for current calendar year
+                current_year = datetime.now().year
+                current_year_data = ipe_df[ipe_df['Date Received'].dt.year == current_year].copy()
                 
-                # Filter columns that exist in the dataframe
-                available_columns = [col for col in main_columns if col in filtered_df.columns]
-                
-                # Create narrative display
-                narrative_text = ""
-                for col in available_columns:
-                    if col == 'Progress Reports Sent to Referring Agent/CM':
-                        # Special handling for Progress Reports - collect all non-empty values from all rows
-                        progress_reports = filtered_df[col].dropna().unique()
-                        if len(progress_reports) > 0:
-                            narrative_text += f"**{col}:**\n"
-                            for report in progress_reports:
-                                if str(report).strip() and str(report).strip() != "nan":
-                                    narrative_text += f"• {report}\n"
-                        else:
-                            narrative_text += f"**{col}:** Not specified\n"
-                    elif col == 'Date Received':
-                        # Special formatting for Date Received - YYYY-MM-DD format
-                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                        if pd.notna(value) and value != "Not specified":
-                            try:
-                                # Convert to datetime and format as YYYY-MM-DD
-                                if isinstance(value, str):
-                                    date_obj = pd.to_datetime(value, errors='coerce')
-                                else:
-                                    date_obj = value
-                                if pd.notna(date_obj):
-                                    formatted_date = date_obj.strftime('%Y-%m-%d')
-                                    narrative_text += f"**{col}:** {formatted_date}\n"
-                                else:
-                                    narrative_text += f"**{col}:** {value}\n"
-                            except:
-                                narrative_text += f"**{col}:** {value}\n"
-                        else:
-                            narrative_text += f"**{col}:** Not specified\n"
-                    else:
-                        value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
-                        if pd.isna(value) or value == "":
-                            value = "Not specified"
-                        narrative_text += f"**{col}:** {value}\n"
-                
-                # Display each line separately with proper spacing
-                lines = narrative_text.strip().split('\n')
-                for line in lines:
-                    if line.strip():  # Only display non-empty lines
-                        st.markdown(line)
-                        st.markdown("")  # Add extra spacing between lines
-                
-                # Display case notes separately
-                st.markdown("#### 📝 Case Notes")
-                case_notes_columns = ['Day of Case Note', 'Case Notes']
-                case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
-                
-                if case_notes_available:
-                    case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
-                    if not case_notes_df.empty:
-                        # Reset index to remove index column from display
-                        case_notes_df_display = case_notes_df.reset_index(drop=True)
-                        st.table(case_notes_df_display)
-                    else:
-                        st.info("No case notes available for this client.")
+                if not current_year_data.empty:
+                    # Group by month and count referrals
+                    monthly_referrals = current_year_data.groupby(current_year_data['Date Received'].dt.month).size().reset_index()
+                    monthly_referrals.columns = ['Month', 'Count']
+                    
+                    # Create month names for better display
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    
+                    # Get current month and create dataset only up to current month
+                    current_month = datetime.now().month
+                    monthly_referrals_complete = pd.DataFrame({
+                        'Month': range(1, current_month + 1),
+                        'Month_Name': month_names[:current_month],
+                        'Count': 0
+                    })
+                    
+                    # Update with actual data
+                    for _, row in monthly_referrals.iterrows():
+                        month_num = row['Month']
+                        count = row['Count']
+                        monthly_referrals_complete.loc[monthly_referrals_complete['Month'] == month_num, 'Count'] = count
+                    
+                    monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
+                    
+                    
+                    # Create the chart with proper month ordering
+                    chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).encode(
+                        x=alt.X('Month_Name:O', title='Month', 
+                               sort=month_names[:current_month],
+                               axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Referrals'),
+                        tooltip=['Month_Name', 'Count']
+                    ).properties(
+                        width=400,
+                        height=300,
+                        title=f'Monthly New Referrals - {current_year}'
+                    ).interactive()
+                    
+                    st.altair_chart(chart, use_container_width=True)
                 else:
-                    st.info("Case notes columns not found in the dataset.")
+                    st.info(f"No new referrals found for {current_year}")
+            with col5:
+                st.markdown('##### Time-series Plot of New Comments:')
+
+                # Filter data for current calendar year
+                current_year = datetime.now().year
                 
-                # Add new note section
-                st.markdown("#### 📝 Add New Note")
+                # Check if 'Day of Case Note' column exists and convert to datetime
+                if 'Day of Case Note' in ipe_df.columns:
+                    # Convert to datetime if not already
+                    ipe_df['Day of Case Note'] = pd.to_datetime(ipe_df['Day of Case Note'], errors='coerce')
+                    current_year_data = ipe_df[ipe_df['Day of Case Note'].dt.year == current_year].copy()
+                else:
+                    current_year_data = pd.DataFrame()  # Empty dataframe if column doesn't exist
                 
-                with st.form(key=f"note_form_{selected_client}"):
-                    # Date selection for the new note
-                    note_date = st.date_input(
-                        "Note Date:",
-                        value=datetime.today().date(),
-                        key=f"note_date_{selected_client}"
-                    )
+                if not current_year_data.empty:
+                    # Group by month and count comments
+                    monthly_comments = current_year_data.groupby(current_year_data['Day of Case Note'].dt.month).size().reset_index()
+                    monthly_comments.columns = ['Month', 'Count']
                     
-                    # Text area for new note
-                    new_note = st.text_area(
-                        "Enter your note:",
-                        height=100,
-                        placeholder="Type your note here...",
-                        key=f"new_note_{selected_client}"
-                    )
+                    # Create month names for better display
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                     
-                    # Add note button
-                    submit_button = st.form_submit_button("➕ Add Note")
+                    # Get current month and create dataset only up to current month
+                    current_month = datetime.now().month
+                    monthly_comments_complete = pd.DataFrame({
+                        'Month': range(1, current_month + 1),
+                        'Month_Name': month_names[:current_month],
+                        'Count': 0
+                    })
+                    
+                    # Update with actual data
+                    for _, row in monthly_comments.iterrows():
+                        month_num = row['Month']
+                        count = row['Count']
+                        monthly_comments_complete.loc[monthly_comments_complete['Month'] == month_num, 'Count'] = count
+                    
+                    monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
+                    
+
+                    # Create the chart with proper month ordering
+                    chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).encode(
+                        x=alt.X('Month_Name:O', title='Month',
+                               sort=month_names[:current_month],
+                               axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Comments'),
+                        tooltip=['Month_Name', 'Count']
+                    ).properties(
+                        width=400,
+                        height=300,
+                        title=f'Monthly New Comments - {current_year}'
+                    ).interactive()
+                
+                    st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info(f"No new comments found for {current_year}")
+
+            with st.expander("📝 **Add New Referral**"):
+                st.markdown("### 📝 Add New Referral")
+                with st.form(key="add_referral_form"):
+                    date_referral = st.date_input("Date of Referral:", value=datetime.today().date())
+                    name_of_client = st.text_input("Name of Client:")
+                    type = st.selectbox("Type of Referral:", options=["Second referral", "Referral to IPE and VPIP", "VPIP"])
+                    referral_agent = st.text_input("Referring Agent:")
+                    consent_signed_for_grit_nvfs = st.text_input("Consent Signed for GRIT/NVFS:")
+                    case_manager = st.text_input("Case Manager:")
+                    progress_reports_sent_to_referring_agent_cm = st.text_input("Progress Reports Sent to Referring Agent/CM")
+                    day_of_case_note = st.date_input("Day of Case Note:", value=datetime.today().date())
+                    case_notes = st.text_area("Enter your note:", height=100, placeholder="Type your note here...")
+                    submit_button = st.form_submit_button("➕ Add Referral")
                     
                     if submit_button:
-                        if new_note.strip():
+                        if name_of_client.strip() and case_notes.strip():
                             try:
-                                # Format the date as string
-                                note_date_str = note_date.strftime('%m/%d/%y')
-                                
-                                # Prepare the new row data
                                 new_row_data = {
-                                    'Name of Client': selected_client,
-                                    'Day of Case Note': note_date_str,
-                                    'Case Notes': new_note.strip()
+                                    'Name of Client': name_of_client,
+                                    "Type": type,
+                                    'Date Received': date_referral.strftime('%m/%d/%Y'),
+                                    'Referral Agent': referral_agent,
+                                    'Consent Signed for GRIT/NVFS': consent_signed_for_grit_nvfs,
+                                    'Case Manager': case_manager,
+                                    'Progress Reports Sent to Referring Agent/CM': progress_reports_sent_to_referring_agent_cm,
+                                    'Day of Case Note': day_of_case_note.strftime('%m/%d/%Y'),
+                                    'Case Notes': case_notes
                                 }
-                                
-                                # Add empty values for other columns to maintain structure
-                                for col in ipe_df.columns:
-                                    if col not in new_row_data:
-                                        new_row_data[col] = ''
-                                
-                                # Convert to list in the correct order
                                 new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
-                                
-                                # Append to Google Sheets
-                                worksheet2.append_row(new_row)
-                                
-                                st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                worksheet1.append_row(new_row)
+                                st.success("✅ Referral added successfully!")
                                 st.rerun()
-                                
                             except Exception as e:
-                                st.error(f"❌ Error adding note: {str(e)}")
+                                st.error(f"❌ Error adding referral: {str(e)}")
                         else:
-                            st.warning("⚠️ Please enter a note before adding.")
-            else:
-                st.warning(f"No data found for client: {selected_client}")
+                            st.warning("⚠️ Please fill in Name of Client and Case Notes before submitting.")
+
+
+            # Add client filter in sidebar
+            with st.expander("📝 **Add New Note**"):
+                st.markdown("### 🔍 Filter by Client")
+                unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
+                selected_client = st.selectbox(
+                    "Select a client:",
+                    list(unique_clients),
+                    index=0
+                )
+                
+                
+                # Filter data based on selected client
+                filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
+                
+                if not filtered_df.empty:
+                    st.markdown("#### 📋 Client Information")
+                    
+                    # Display main client information in narrative format
+                    main_columns = ['Name of Client', 'Type', 'Referral Agent', 'Date Received', 
+                                'Service End Date', 'Consent Signed for GRIT/NVFS', 'Case Manager', 
+                                'Progress Reports Sent to Referring Agent/CM']
+                    
+                    # Filter columns that exist in the dataframe
+                    available_columns = [col for col in main_columns if col in filtered_df.columns]
+                    
+                    # Create narrative display
+                    narrative_text = ""
+                    for col in available_columns:
+                        if col == 'Progress Reports Sent to Referring Agent/CM':
+                            # Special handling for Progress Reports - collect all non-empty values from all rows
+                            progress_reports = filtered_df[col].dropna().unique()
+                            if len(progress_reports) > 0:
+                                narrative_text += f"**{col}:**\n"
+                                for report in progress_reports:
+                                    if str(report).strip() and str(report).strip() != "nan":
+                                        narrative_text += f"• {report}\n"
+                            else:
+                                narrative_text += f"**{col}:** Not specified\n"
+                        elif col == 'Date Received':
+                            # Special formatting for Date Received - YYYY-MM-DD format
+                            value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                            if pd.notna(value) and value != "Not specified":
+                                try:
+                                    # Convert to datetime and format as YYYY-MM-DD
+                                    if isinstance(value, str):
+                                        date_obj = pd.to_datetime(value, errors='coerce')
+                                    else:
+                                        date_obj = value
+                                    if pd.notna(date_obj):
+                                        formatted_date = date_obj.strftime('%Y-%m-%d')
+                                        narrative_text += f"**{col}:** {formatted_date}\n"
+                                    else:
+                                        narrative_text += f"**{col}:** {value}\n"
+                                except:
+                                    narrative_text += f"**{col}:** {value}\n"
+                            else:
+                                narrative_text += f"**{col}:** Not specified\n"
+                        else:
+                            value = filtered_df[col].iloc[0] if not filtered_df[col].isna().all() else "Not specified"
+                            if pd.isna(value) or value == "":
+                                value = "Not specified"
+                            narrative_text += f"**{col}:** {value}\n"
+                    
+                    # Display each line separately with proper spacing
+                    lines = narrative_text.strip().split('\n')
+                    for line in lines:
+                        if line.strip():  # Only display non-empty lines
+                            st.markdown(line)
+                            st.markdown("")  # Add extra spacing between lines
+                    
+                    # Display case notes separately
+                    st.markdown("#### 📝 Case Notes")
+                    case_notes_columns = ['Day of Case Note', 'Case Notes']
+                    case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
+                    
+                    if case_notes_available:
+                        case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
+                        if not case_notes_df.empty:
+                            # Reset index to remove index column from display
+                            case_notes_df_display = case_notes_df.reset_index(drop=True)
+                            st.table(case_notes_df_display)
+                        else:
+                            st.info("No case notes available for this client.")
+                    else:
+                        st.info("Case notes columns not found in the dataset.")
+                    
+                    # Add new note section
+                    st.markdown("#### 📝 Add New Note")
+                    
+                    with st.form(key=f"note_form_{selected_client}"):
+                        # Date selection for the new note
+                        note_date = st.date_input(
+                            "Note Date:",
+                            value=datetime.today().date(),
+                            key=f"note_date_{selected_client}"
+                        )
+                        
+                        # Text area for new note
+                        new_note = st.text_area(
+                            "Enter your note:",
+                            height=100,
+                            placeholder="Type your note here...",
+                            key=f"new_note_{selected_client}"
+                        )
+                        
+                        # Add note button
+                        submit_button = st.form_submit_button("➕ Add Note")
+                        
+                        if submit_button:
+                            if new_note.strip():
+                                try:
+                                    # Format the date as string
+                                    note_date_str = note_date.strftime('%m/%d/%y')
+                                    
+                                    # Prepare the new row data
+                                    new_row_data = {
+                                        'Name of Client': selected_client,
+                                        'Day of Case Note': note_date_str,
+                                        'Case Notes': new_note.strip()
+                                    }
+                                    
+                                    # Add empty values for other columns to maintain structure
+                                    for col in ipe_df.columns:
+                                        if col not in new_row_data:
+                                            new_row_data[col] = ''
+                                    
+                                    # Convert to list in the correct order
+                                    new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
+                                    
+                                    # Append to Google Sheets
+                                    worksheet2.append_row(new_row)
+                                    
+                                    st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                    st.rerun()
+                                    
+                                except Exception as e:
+                                    st.error(f"❌ Error adding note: {str(e)}")
+                            else:
+                                st.warning("⚠️ Please enter a note before adding.")
+                else:
+                    st.warning(f"No data found for client: {selected_client}")
