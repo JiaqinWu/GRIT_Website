@@ -306,6 +306,10 @@ else:
                     monthly_referrals_complete = all_months.merge(monthly_referrals, on='Month', how='left').fillna(0)
                     monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
                     
+                    # Ensure Month_Name is properly formatted as string
+                    monthly_referrals_complete['Month_Name'] = monthly_referrals_complete['Month_Name'].astype(str)
+                    monthly_referrals_complete = monthly_referrals_complete.dropna(subset=['Month_Name'])
+                    
                     # Create the chart
                     chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).encode(
                         x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
@@ -349,6 +353,10 @@ else:
                     all_months['Month_Name'] = all_months['Month'].map(lambda x: month_names[x-1])
                     monthly_comments_complete = all_months.merge(monthly_comments, on='Month', how='left').fillna(0)
                     monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
+                    
+                    # Ensure Month_Name is properly formatted as string
+                    monthly_comments_complete['Month_Name'] = monthly_comments_complete['Month_Name'].astype(str)
+                    monthly_comments_complete = monthly_comments_complete.dropna(subset=['Month_Name'])
                     
                     # Create the chart
                     chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).encode(
