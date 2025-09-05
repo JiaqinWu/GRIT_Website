@@ -324,7 +324,7 @@ else:
                                sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                                axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y('Count:Q', title='Number of Referrals', scale=alt.Scale(domain=[0, None])),
+                        y=alt.Y('Count:Q', title='Number of Referrals'),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
                         width=400,
@@ -383,7 +383,7 @@ else:
                                sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                                axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y('Count:Q', title='Number of Comments', scale=alt.Scale(domain=[0, None])),
+                        y=alt.Y('Count:Q', title='Number of Comments'),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
                         width=400,
