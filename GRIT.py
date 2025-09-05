@@ -299,10 +299,11 @@ else:
                     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                     
-                    # Create complete dataset with all 12 months (including months with 0 referrals)
+                    # Get current month and create dataset only up to current month
+                    current_month = datetime.now().month
                     monthly_referrals_complete = pd.DataFrame({
-                        'Month': range(1, 13),
-                        'Month_Name': month_names,
+                        'Month': range(1, current_month + 1),
+                        'Month_Name': month_names[:current_month],
                         'Count': 0
                     })
                     
@@ -314,15 +315,11 @@ else:
                     
                     monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
                     
-                    # Debug: Print the data to see what we have
-                    st.write("Debug - Monthly Referrals Data:")
-                    st.write(monthly_referrals_complete)
                     
                     # Create the chart with proper month ordering
                     chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).encode(
                         x=alt.X('Month_Name:O', title='Month', 
-                               sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                               sort=month_names[:current_month],
                                axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Referrals'),
                         tooltip=['Month_Name', 'Count']
@@ -358,10 +355,11 @@ else:
                     month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                     
-                    # Create complete dataset with all 12 months (including months with 0 comments)
+                    # Get current month and create dataset only up to current month
+                    current_month = datetime.now().month
                     monthly_comments_complete = pd.DataFrame({
-                        'Month': range(1, 13),
-                        'Month_Name': month_names,
+                        'Month': range(1, current_month + 1),
+                        'Month_Name': month_names[:current_month],
                         'Count': 0
                     })
                     
@@ -373,15 +371,11 @@ else:
                     
                     monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
                     
-                    # Debug: Print the data to see what we have
-                    st.write("Debug - Monthly Comments Data:")
-                    st.write(monthly_comments_complete)
-                    
+
                     # Create the chart with proper month ordering
                     chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).encode(
                         x=alt.X('Month_Name:O', title='Month',
-                               sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                               sort=month_names[:current_month],
                                axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Comments'),
                         tooltip=['Month_Name', 'Count']
