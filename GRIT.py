@@ -314,9 +314,16 @@ else:
                     
                     monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
                     
-                    # Create the chart
+                    # Debug: Print the data to see what we have
+                    st.write("Debug - Monthly Referrals Data:")
+                    st.write(monthly_referrals_complete)
+                    
+                    # Create the chart with proper month ordering
                     chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).encode(
-                        x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        x=alt.X('Month_Name:O', title='Month', 
+                               sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                               axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Referrals', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
@@ -366,9 +373,16 @@ else:
                     
                     monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
                     
-                    # Create the chart
+                    # Debug: Print the data to see what we have
+                    st.write("Debug - Monthly Comments Data:")
+                    st.write(monthly_comments_complete)
+                    
+                    # Create the chart with proper month ordering
                     chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).encode(
-                        x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        x=alt.X('Month_Name:O', title='Month',
+                               sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                               axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Comments', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
