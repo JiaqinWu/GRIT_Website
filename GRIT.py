@@ -50,18 +50,58 @@ client = gspread.authorize(creds)
 try:
     spreadsheet1 = client.open('Referral Information')
     worksheet1 = spreadsheet1.worksheet('GRIT')
-    grit_records = worksheet1.get_all_records()
-    #st.write("GRIT records:", grit_records)  # Debug
-    grit_df = pd.DataFrame(grit_records)
-    grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
+    
+    # Get all values and handle duplicate headers
+    grit_values = worksheet1.get_all_values()
+    if grit_values:
+        # Clean up duplicate headers by making them unique
+        headers = grit_values[0]
+        cleaned_headers = []
+        header_counts = {}
+        for header in headers:
+            if header == '' or header in header_counts:
+                header_counts[header] = header_counts.get(header, 0) + 1
+                cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
+            else:
+                header_counts[header] = 1
+                cleaned_headers.append(header)
+        
+        # Create DataFrame with cleaned headers
+        grit_data = grit_values[1:]  # Skip header row
+        grit_df = pd.DataFrame(grit_data, columns=cleaned_headers)
+        grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
+    else:
+        grit_df = pd.DataFrame()
+    
     worksheet2 = spreadsheet1.worksheet('IPE')
-    ipe_records = worksheet2.get_all_records()
-    #st.write("IPE records:", ipe_records)  # Debug
-    ipe_df = pd.DataFrame(ipe_records)
-    ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
+    
+    # Get all values and handle duplicate headers
+    ipe_values = worksheet2.get_all_values()
+    if ipe_values:
+        # Clean up duplicate headers by making them unique
+        headers = ipe_values[0]
+        cleaned_headers = []
+        header_counts = {}
+        for header in headers:
+            if header == '' or header in header_counts:
+                header_counts[header] = header_counts.get(header, 0) + 1
+                cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
+            else:
+                header_counts[header] = 1
+                cleaned_headers.append(header)
+        
+        # Create DataFrame with cleaned headers
+        ipe_data = ipe_values[1:]  # Skip header row
+        ipe_df = pd.DataFrame(ipe_data, columns=cleaned_headers)
+        ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
+    else:
+        ipe_df = pd.DataFrame()
+        
 except Exception as e:
     st.error(f"Error fetching data from Google Sheets: {str(e)}")
-    #st.write("Exception type:", type(e))
+    # Create empty DataFrames as fallback
+    grit_df = pd.DataFrame()
+    ipe_df = pd.DataFrame()
 
 def format_phone(phone_str):
     # Remove non-digit characters
