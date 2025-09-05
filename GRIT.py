@@ -278,8 +278,8 @@ else:
             pastmonth_request = grit_df[grit_df['Date'] >= last_month].shape[0]
 
             col1.metric(label="# of Total Referrals", value= millify(referral_num_grit, precision=2))
-            col2.metric(label="# of Referrals from Last Year", value= millify(pastyear_request, precision=2))
-            col3.metric(label="# of Referrals from Last Month", value= millify(pastmonth_request, precision=2))
+            col2.metric(label="# of Referrals from Last One Year", value= millify(pastyear_request, precision=2))
+            col3.metric(label="# of Referrals from Last 30 Days", value= millify(pastmonth_request, precision=2))
             style_metric_cards(border_left_color="#DBF227")
 
             col4, col5 = st.columns(2)
@@ -300,12 +300,18 @@ else:
                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                     monthly_referrals['Month_Name'] = monthly_referrals['Month'].map(lambda x: month_names[x-1])
                     
+                    # Create complete dataset with all 12 months (including months with 0 referrals)
+                    all_months = pd.DataFrame({'Month': range(1, 13)})
+                    all_months['Month_Name'] = all_months['Month'].map(lambda x: month_names[x-1])
+                    monthly_referrals_complete = all_months.merge(monthly_referrals, on='Month', how='left').fillna(0)
+                    monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
+                    
                     # Create the chart
-                    chart = alt.Chart(monthly_referrals).mark_line(point=True, strokeWidth=3).add_selection(
+                    chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).add_selection(
                         alt.selection_interval()
                     ).encode(
-                        x=alt.X('Month:O', title='Month', axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y('Count:Q', title='Number of Referrals'),
+                        x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Referrals', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
                         width=400,
@@ -340,12 +346,18 @@ else:
                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
                     monthly_comments['Month_Name'] = monthly_comments['Month'].map(lambda x: month_names[x-1])
                     
+                    # Create complete dataset with all 12 months (including months with 0 comments)
+                    all_months = pd.DataFrame({'Month': range(1, 13)})
+                    all_months['Month_Name'] = all_months['Month'].map(lambda x: month_names[x-1])
+                    monthly_comments_complete = all_months.merge(monthly_comments, on='Month', how='left').fillna(0)
+                    monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
+                    
                     # Create the chart
-                    chart = alt.Chart(monthly_comments).mark_line(point=True, strokeWidth=3).add_selection(
+                    chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).add_selection(
                         alt.selection_interval()
                     ).encode(
-                        x=alt.X('Month:O', title='Month', axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y('Count:Q', title='Number of Comments'),
+                        x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y('Count:Q', title='Number of Comments', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
                     ).properties(
                         width=400,
