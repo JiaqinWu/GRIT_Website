@@ -307,9 +307,7 @@ else:
                     monthly_referrals_complete['Count'] = monthly_referrals_complete['Count'].astype(int)
                     
                     # Create the chart
-                    chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).add_selection(
-                        alt.selection_interval()
-                    ).encode(
+                    chart = alt.Chart(monthly_referrals_complete).mark_line(point=True, strokeWidth=3).encode(
                         x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Referrals', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
@@ -353,9 +351,7 @@ else:
                     monthly_comments_complete['Count'] = monthly_comments_complete['Count'].astype(int)
                     
                     # Create the chart
-                    chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).add_selection(
-                        alt.selection_interval()
-                    ).encode(
+                    chart = alt.Chart(monthly_comments_complete).mark_line(point=True, strokeWidth=3).encode(
                         x=alt.X('Month_Name:O', title='Month', axis=alt.Axis(labelAngle=0)),
                         y=alt.Y('Count:Q', title='Number of Comments', scale=alt.Scale(domain=[0, None])),
                         tooltip=['Month_Name', 'Count']
