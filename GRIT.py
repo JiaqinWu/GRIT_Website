@@ -118,6 +118,42 @@ def format_phone(phone_str):
 # Apply formatting
 #df["Phone Number"] = df["Phone Number"].astype(str).apply(format_phone)
 
+def send_email_mailjet(to_email, subject, body):
+    api_key = st.secrets["mailjet"]["api_key"]
+    api_secret = st.secrets["mailjet"]["api_secret"]
+    sender = st.secrets["mailjet"]["sender"]
+
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+
+    data = {
+        'Messages': [
+            {
+                "From": {
+                    "Email": sender,
+                    "Name": "PWC GRIT System"
+                },
+                "To": [
+                    {
+                        "Email": to_email,
+                        "Name": to_email.split("@")[0]
+                    }
+                ],
+                "Subject": subject,
+                "TextPart": body
+            }
+        ]
+    }
+
+    try:
+        result = mailjet.send.create(data=data)
+        #if result.status_code == 200:
+            #st.success(f"📤 Email sent to {to_email}")
+        #else:
+            #st.warning(f"❌ Failed to email {to_email}: {result.status_code} - {result.json()}")
+    except Exception as e:
+        st.error(f"❗ Mailjet error: {e}")
+
+
 # --- Demo user database
 USERS = {
     "JWu@pwcgov.org": {
@@ -456,11 +492,48 @@ else:
                                 new_row = [new_row_data.get(col, '') for col in grit_df.columns]
                                 worksheet1.append_row(new_row)
                                 st.success("✅ Referral added successfully!")
+
+                                coordinator_emails = ["JWu@pwcgov.org"]
+
+                                subject = f"New Referral Submitted to GRIT program: {youth_name}"
+                                for email in coordinator_emails:
+                                    coordinator_name = USERS[email]["GRIT"]["name"]
+                                    personalized_body = f"""
+                                    Hi {coordinator_name},
+
+                                    A new referral has been submitted to GRIT program:
+
+                                    Youth Name: {youth_name}
+                                    Date: {date_referral.strftime('%m/%d/%Y')}
+                                    Referring Agent: {referral_agent}
+                                    Agency: {Agency}
+                                    DOB/Age: {dob_age}
+                                    Day of Case Note: {day_of_case_note.strftime('%m/%d/%Y')}
+                                    Case Notes: {case_notes}
+
+                                    Please review and add more comments to this referral via the PWC GRIT Dashboard: https://gritwebsitepwc.streamlit.app/.
+                                    Please contact JWu@pwcgov.org for any questions or concerns.
+
+                                    Best,
+                                    PWC GRIT System
+                                    """
+                                    try:
+                                        send_email_mailjet(
+                                            to_email=email,
+                                            subject=subject,
+                                            body=personalized_body,
+                                        )
+                                    except Exception as e:
+                                        st.warning(f"⚠️ Failed to send email to coordinator {email}: {e}")
+                                        except Exception as e:
+                                            st.error(f"❌ Error adding referral: {str(e)}")
+
+                                    else:
+                                        st.warning("⚠️ Please fill in Youth Name and Case Notes before submitting.")
+
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Error adding referral: {str(e)}")
-                        else:
-                            st.warning("⚠️ Please fill in Youth Name and Case Notes before submitting.")
+                                    
+                        
 
             with st.expander("📝 **Add New Note**"):
                 # Add client filter in sidebar
