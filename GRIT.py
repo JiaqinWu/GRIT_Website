@@ -494,7 +494,7 @@ else:
                                 worksheet1.append_row(new_row)
                                 st.success("✅ Referral added successfully!")
 
-                                coordinator_emails = ["JWu@pwcgov.org"]
+                                coordinator_emails = ["jkooyoomjian@pwcgov.org"]
                                 subject = f"New Referral Submitted to GRIT program: {youth_name}"
 
                                 for email in coordinator_emails:
@@ -874,7 +874,7 @@ else:
                                 worksheet2.append_row(new_row)
                                 st.success("✅ Referral added successfully!")
 
-                                coordinator_emails = ["JWu@pwcgov.org"]
+                                coordinator_emails = ["jkooyoomjian@pwcgov.org"]
                                 subject = f"New Referral Submitted to IPE program: {name_of_client}"
 
                                 for email in coordinator_emails:
