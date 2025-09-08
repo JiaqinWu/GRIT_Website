@@ -525,7 +525,8 @@ else:
                                         )
                                     except Exception as e:
                                         st.warning(f"⚠️ Failed to send email to coordinator {email}: {e}")
-
+                                
+                                time.sleep(3)
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"❌ Error adding referral: {str(e)}")
