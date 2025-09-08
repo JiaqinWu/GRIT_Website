@@ -856,7 +856,7 @@ else:
                     submit_button = st.form_submit_button("➕ Add Referral")
                     
 
-                     if submit_button:
+                    if submit_button:
                         if name_of_client.strip() and case_notes.strip():
                             try:
                                 new_row_data = {
