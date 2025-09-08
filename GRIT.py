@@ -516,7 +516,7 @@ else:
                     Contact JWu@pwcgov.org for questions.
 
                     Best,
-                    PWC GRIT System
+                    PWC GRIT Dashboard
                     """
                                         send_email_mailjet(
                                             to_email=email,
@@ -855,7 +855,8 @@ else:
                     case_notes = st.text_area("Enter your note:", height=100, placeholder="Type your note here...")
                     submit_button = st.form_submit_button("➕ Add Referral")
                     
-                    if submit_button:
+
+                     if submit_button:
                         if name_of_client.strip() and case_notes.strip():
                             try:
                                 new_row_data = {
@@ -872,6 +873,42 @@ else:
                                 new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
                                 worksheet2.append_row(new_row)
                                 st.success("✅ Referral added successfully!")
+
+                                coordinator_emails = ["JWu@pwcgov.org"]
+                                subject = f"New Referral Submitted to IPE program: {name_of_client}"
+
+                                for email in coordinator_emails:
+                                    try:
+                                        coordinator_name = USERS[email]["IPE"]["name"]
+                                        personalized_body = f"""Hi {coordinator_name},
+
+                    A new referral has been submitted to IPE program:
+
+                    Name of Client: {name_of_client}
+                    Type: {type}
+                    Date Received: {date_referral.strftime('%m/%d/%Y')}
+                    Referral Agent: {referral_agent}
+                    Consent Signed for GRIT/NVFS: {consent_signed_for_grit_nvfs}
+                    Case Manager: {case_manager}
+                    Progress Reports Sent to Referring Agent/CM: {progress_reports_sent_to_referring_agent_cm}
+                    Day of Case Note: {day_of_case_note.strftime('%m/%d/%Y')}
+                    Case Notes: {case_notes}
+
+                    Please review via the PWC IPE Dashboard: https://gritwebsitepwc.streamlit.app/.
+                    Contact JWu@pwcgov.org for questions.
+
+                    Best,
+                    PWC GRIT Dashboard
+                    """
+                                        send_email_mailjet(
+                                            to_email=email,
+                                            subject=subject,
+                                            body=personalized_body,
+                                        )
+                                    except Exception as e:
+                                        st.warning(f"⚠️ Failed to send email to coordinator {email}: {e}")
+                                
+                                time.sleep(3)
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"❌ Error adding referral: {str(e)}")
