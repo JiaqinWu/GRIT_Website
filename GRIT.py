@@ -569,6 +569,10 @@ else:
                                 }
                                 new_row = [new_row_data.get(col, '') for col in grit_df.columns]
                                 worksheet1.append_row(new_row)
+                                
+                                # Clear cache to show updated data
+                                fetch_google_sheets_data.clear()
+                                
                                 st.success("✅ Referral added successfully!")
 
                                 coordinator_emails = ["jkooyoomjian@pwcgov.org"]
@@ -786,6 +790,9 @@ else:
                                                 
                                                 worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
+                                                # Clear cache to show updated data
+                                                fetch_google_sheets_data.clear()
+                                                
                                                 st.success(f"✅ Comment updated successfully for {selected_youth}")
                                                 
                                                 # Clear session state
@@ -866,6 +873,9 @@ else:
                                     
                                     # Append to Google Sheets
                                     worksheet1.append_row(new_row)
+                                    
+                                    # Clear cache to show updated data
+                                    fetch_google_sheets_data.clear()
                                     
                                     st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
                                     st.rerun()
@@ -1085,6 +1095,10 @@ else:
                                 }
                                 new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
                                 worksheet2.append_row(new_row)
+                                
+                                # Clear cache to show updated data
+                                fetch_google_sheets_data.clear()
+                                
                                 st.success("✅ Referral added successfully!")
 
                                 coordinator_emails = ["jkooyoomjian@pwcgov.org"]
@@ -1316,6 +1330,9 @@ else:
                                                 
                                                 worksheet2.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
+                                                # Clear cache to show updated data
+                                                fetch_google_sheets_data.clear()
+                                                
                                                 st.success(f"✅ Comment updated successfully for {selected_client}")
                                                 
                                                 # Clear session state
@@ -1396,6 +1413,9 @@ else:
                                     
                                     # Append to Google Sheets
                                     worksheet2.append_row(new_row)
+                                    
+                                    # Clear cache to show updated data
+                                    fetch_google_sheets_data.clear()
                                     
                                     st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
                                     st.rerun()
