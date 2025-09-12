@@ -47,62 +47,123 @@ creds_json = json.dumps(credentials)
 creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(creds_json), scope)
 client = gspread.authorize(creds)
 
-# Fetch data from Google Sheets
-try:
-    spreadsheet1 = client.open('Referral Information')
-    worksheet1 = spreadsheet1.worksheet('GRIT')
-    
-    # Get all values and handle duplicate headers
-    grit_values = worksheet1.get_all_values()
-    if grit_values:
-        # Clean up duplicate headers by making them unique
-        headers = grit_values[0]
-        cleaned_headers = []
-        header_counts = {}
-        for header in headers:
-            if header == '' or header in header_counts:
-                header_counts[header] = header_counts.get(header, 0) + 1
-                cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
-            else:
-                header_counts[header] = 1
-                cleaned_headers.append(header)
+# Cache configuration
+CACHE_DURATION = 300  # 5 minutes in seconds
+
+@st.cache_data(ttl=CACHE_DURATION)
+def fetch_google_sheets_data():
+    """Fetch data from Google Sheets with caching"""
+    try:
+        spreadsheet1 = client.open('Referral Information')
+        worksheet1 = spreadsheet1.worksheet('GRIT')
         
-        # Create DataFrame with cleaned headers
-        grit_data = grit_values[1:]  # Skip header row
-        grit_df = pd.DataFrame(grit_data, columns=cleaned_headers)
-        grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
-    else:
-        grit_df = pd.DataFrame()
-    
-    worksheet2 = spreadsheet1.worksheet('IPE')
-    
-    # Get all values and handle duplicate headers
-    ipe_values = worksheet2.get_all_values()
-    if ipe_values:
-        # Clean up duplicate headers by making them unique
-        headers = ipe_values[0]
-        cleaned_headers = []
-        header_counts = {}
-        for header in headers:
-            if header == '' or header in header_counts:
-                header_counts[header] = header_counts.get(header, 0) + 1
-                cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
-            else:
-                header_counts[header] = 1
-                cleaned_headers.append(header)
+        # Get all values and handle duplicate headers
+        grit_values = worksheet1.get_all_values()
+        if grit_values:
+            # Clean up duplicate headers by making them unique
+            headers = grit_values[0]
+            cleaned_headers = []
+            header_counts = {}
+            for header in headers:
+                if header == '' or header in header_counts:
+                    header_counts[header] = header_counts.get(header, 0) + 1
+                    cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
+                else:
+                    header_counts[header] = 1
+                    cleaned_headers.append(header)
+            
+            # Create DataFrame with cleaned headers
+            grit_data = grit_values[1:]  # Skip header row
+            grit_df = pd.DataFrame(grit_data, columns=cleaned_headers)
+            grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
+        else:
+            grit_df = pd.DataFrame()
         
-        # Create DataFrame with cleaned headers
-        ipe_data = ipe_values[1:]  # Skip header row
-        ipe_df = pd.DataFrame(ipe_data, columns=cleaned_headers)
-        ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
-    else:
-        ipe_df = pd.DataFrame()
+        worksheet2 = spreadsheet1.worksheet('IPE')
         
-except Exception as e:
-    st.error(f"Error fetching data from Google Sheets: {str(e)}")
-    # Create empty DataFrames as fallback
-    grit_df = pd.DataFrame()
-    ipe_df = pd.DataFrame()
+        # Get all values and handle duplicate headers
+        ipe_values = worksheet2.get_all_values()
+        if ipe_values:
+            # Clean up duplicate headers by making them unique
+            headers = ipe_values[0]
+            cleaned_headers = []
+            header_counts = {}
+            for header in headers:
+                if header == '' or header in header_counts:
+                    header_counts[header] = header_counts.get(header, 0) + 1
+                    cleaned_headers.append(f"{header}_{header_counts[header]}" if header else f"empty_{header_counts[header]}")
+                else:
+                    header_counts[header] = 1
+                    cleaned_headers.append(header)
+            
+            # Create DataFrame with cleaned headers
+            ipe_data = ipe_values[1:]  # Skip header row
+            ipe_df = pd.DataFrame(ipe_data, columns=cleaned_headers)
+            ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
+        else:
+            ipe_df = pd.DataFrame()
+        
+        return grit_df, ipe_df, None  # Return success with no error
+        
+    except Exception as e:
+        error_msg = str(e)
+        # Check if it's a quota error
+        if "429" in error_msg or "Quota exceeded" in error_msg:
+            return pd.DataFrame(), pd.DataFrame(), "quota_exceeded"
+        else:
+            return pd.DataFrame(), pd.DataFrame(), error_msg
+
+# Initialize session state for data
+if "data_last_fetched" not in st.session_state:
+    st.session_state.data_last_fetched = 0
+
+# Check if we should fetch fresh data
+current_time = time.time()
+time_since_fetch = current_time - st.session_state.data_last_fetched
+
+# Fetch data with caching and error handling
+grit_df, ipe_df, fetch_error = fetch_google_sheets_data()
+
+if fetch_error == "quota_exceeded":
+    st.warning("""
+    ⚠️ **Google Sheets API Quota Exceeded**
+    
+    We've temporarily hit the API limit. The dashboard is showing cached data. 
+    Please wait a few minutes and refresh the page, or use the refresh button below.
+    """)
+    
+    # Show refresh button
+    if st.button("🔄 Refresh Data", key="refresh_data"):
+        # Clear cache and refetch
+        fetch_google_sheets_data.clear()
+        st.session_state.data_last_fetched = 0
+        st.rerun()
+        
+elif fetch_error:
+    st.error(f"Error fetching data from Google Sheets: {fetch_error}")
+    if st.button("🔄 Retry", key="retry_fetch"):
+        fetch_google_sheets_data.clear()
+        st.session_state.data_last_fetched = 0
+        st.rerun()
+
+# Update last fetch time
+st.session_state.data_last_fetched = current_time
+
+# Function to get worksheets for write operations
+def get_worksheets():
+    """Get worksheet objects for write operations"""
+    try:
+        spreadsheet1 = client.open('Referral Information')
+        worksheet1 = spreadsheet1.worksheet('GRIT')
+        worksheet2 = spreadsheet1.worksheet('IPE')
+        return worksheet1, worksheet2, None
+    except Exception as e:
+        return None, None, str(e)
+
+# Get worksheets for write operations
+worksheet1, worksheet2, worksheet_error = get_worksheets()
+if worksheet_error:
+    st.error(f"Error accessing worksheets: {worksheet_error}")
 
 def format_phone(phone_str):
     # Remove non-digit characters
@@ -247,11 +308,27 @@ else:
         unsafe_allow_html=True
     )
 
-    st.sidebar.button("🔄 Switch Dashboard", on_click=lambda: st.session_state.update({
-        "authenticated": False,
-        "role": None,
-        "user_email": ""
-    }))
+    col_switch, col_refresh = st.sidebar.columns(2)
+    
+    with col_switch:
+        st.sidebar.button("🔄 Switch Dashboard", on_click=lambda: st.session_state.update({
+            "authenticated": False,
+            "role": None,
+            "user_email": ""
+        }))
+    
+    with col_refresh:
+        if st.sidebar.button("📊 Refresh Data", key="sidebar_refresh"):
+            fetch_google_sheets_data.clear()
+            st.session_state.data_last_fetched = 0
+            st.rerun()
+    
+    # Show cache status
+    cache_age = int((time.time() - st.session_state.data_last_fetched) / 60)
+    if cache_age > 0:
+        st.sidebar.caption(f"📅 Data cached {cache_age}m ago")
+    else:
+        st.sidebar.caption("📅 Fresh data")
 
     st.markdown("""
         <style>
