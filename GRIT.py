@@ -666,8 +666,21 @@ else:
                                                 updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
                                                 updated_row_data['Case Notes'] = edit_note.strip()
                                                 
-                                                # Convert to list and update the sheet
-                                                updated_row = [updated_row_data.get(col, '') for col in grit_df.columns]
+                                                # Convert to list and update the sheet, ensuring all values are strings
+                                                updated_row = []
+                                                for col in grit_df.columns:
+                                                    value = updated_row_data.get(col, '')
+                                                    # Convert pandas Timestamp and other non-string types to string
+                                                    if hasattr(value, 'strftime'):
+                                                        # Handle datetime objects
+                                                        updated_row.append(value.strftime('%m/%d/%Y'))
+                                                    elif pd.isna(value):
+                                                        # Handle NaN values
+                                                        updated_row.append('')
+                                                    else:
+                                                        # Convert everything else to string
+                                                        updated_row.append(str(value))
+                                                
                                                 worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
                                                 st.success(f"✅ Comment updated successfully for {selected_youth}")
@@ -1157,8 +1170,21 @@ else:
                                                 updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
                                                 updated_row_data['Case Notes'] = edit_note.strip()
                                                 
-                                                # Convert to list and update the sheet
-                                                updated_row = [updated_row_data.get(col, '') for col in ipe_df.columns]
+                                                # Convert to list and update the sheet, ensuring all values are strings
+                                                updated_row = []
+                                                for col in ipe_df.columns:
+                                                    value = updated_row_data.get(col, '')
+                                                    # Convert pandas Timestamp and other non-string types to string
+                                                    if hasattr(value, 'strftime'):
+                                                        # Handle datetime objects
+                                                        updated_row.append(value.strftime('%m/%d/%Y'))
+                                                    elif pd.isna(value):
+                                                        # Handle NaN values
+                                                        updated_row.append('')
+                                                    else:
+                                                        # Convert everything else to string
+                                                        updated_row.append(str(value))
+                                                
                                                 worksheet2.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
                                                 st.success(f"✅ Comment updated successfully for {selected_client}")
