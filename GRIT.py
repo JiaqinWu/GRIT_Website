@@ -603,15 +603,41 @@ else:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
                             
+                            # Format the display dataframe for better date presentation
+                            case_notes_df_display_formatted = case_notes_df_display.copy()
+                            if 'Day of Case Note' in case_notes_df_display_formatted.columns:
+                                case_notes_df_display_formatted['Day of Case Note'] = case_notes_df_display_formatted['Day of Case Note'].apply(
+                                    lambda x: pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d') if pd.notna(pd.to_datetime(x, errors='coerce')) else str(x)
+                                )
+                            
                             # Add edit functionality
                             st.markdown("**Select a comment to edit:**")
                             comment_options = []
                             for idx, row in case_notes_df_display.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
+                                
+                                # Format date to YYYY-MM-DD if it's a valid date
+                                if pd.notna(date_note) and date_note != 'No date':
+                                    try:
+                                        if isinstance(date_note, str):
+                                            # Try to parse the date string and format it
+                                            parsed_date = pd.to_datetime(date_note, errors='coerce')
+                                            if pd.notna(parsed_date):
+                                                formatted_date = parsed_date.strftime('%Y-%m-%d')
+                                            else:
+                                                formatted_date = str(date_note)
+                                        else:
+                                            # If it's already a datetime object
+                                            formatted_date = date_note.strftime('%Y-%m-%d')
+                                    except:
+                                        formatted_date = str(date_note)
+                                else:
+                                    formatted_date = 'No date'
+                                
                                 # Truncate long notes for display
                                 display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
-                                comment_options.append(f"{date_note}: {display_note}")
+                                comment_options.append(f"{formatted_date}: {display_note}")
                             
                             if comment_options:
                                 selected_comment_idx = st.selectbox(
@@ -711,8 +737,8 @@ else:
                                             del st.session_state[f"edit_note_text_{selected_youth}"]
                                         st.rerun()
                             
-                            # Display the table
-                            st.table(case_notes_df_display)
+                            # Display the table with formatted dates
+                            st.table(case_notes_df_display_formatted)
                         else:
                             st.info("No case notes available for this youth.")
                     else:
@@ -1107,15 +1133,41 @@ else:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
                             
+                            # Format the display dataframe for better date presentation
+                            case_notes_df_display_formatted = case_notes_df_display.copy()
+                            if 'Day of Case Note' in case_notes_df_display_formatted.columns:
+                                case_notes_df_display_formatted['Day of Case Note'] = case_notes_df_display_formatted['Day of Case Note'].apply(
+                                    lambda x: pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d') if pd.notna(pd.to_datetime(x, errors='coerce')) else str(x)
+                                )
+                            
                             # Add edit functionality
                             st.markdown("**Select a comment to edit:**")
                             comment_options = []
                             for idx, row in case_notes_df_display.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
+                                
+                                # Format date to YYYY-MM-DD if it's a valid date
+                                if pd.notna(date_note) and date_note != 'No date':
+                                    try:
+                                        if isinstance(date_note, str):
+                                            # Try to parse the date string and format it
+                                            parsed_date = pd.to_datetime(date_note, errors='coerce')
+                                            if pd.notna(parsed_date):
+                                                formatted_date = parsed_date.strftime('%Y-%m-%d')
+                                            else:
+                                                formatted_date = str(date_note)
+                                        else:
+                                            # If it's already a datetime object
+                                            formatted_date = date_note.strftime('%Y-%m-%d')
+                                    except:
+                                        formatted_date = str(date_note)
+                                else:
+                                    formatted_date = 'No date'
+                                
                                 # Truncate long notes for display
                                 display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
-                                comment_options.append(f"{date_note}: {display_note}")
+                                comment_options.append(f"{formatted_date}: {display_note}")
                             
                             if comment_options:
                                 selected_comment_idx = st.selectbox(
@@ -1215,8 +1267,8 @@ else:
                                             del st.session_state[f"edit_note_text_{selected_client}"]
                                         st.rerun()
                             
-                            # Display the table
-                            st.table(case_notes_df_display)
+                            # Display the table with formatted dates
+                            st.table(case_notes_df_display_formatted)
                         else:
                             st.info("No case notes available for this client.")
                     else:
