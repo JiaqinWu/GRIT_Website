@@ -602,6 +602,103 @@ else:
                         if not case_notes_df.empty:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
+                            
+                            # Add edit functionality
+                            st.markdown("**Select a comment to edit:**")
+                            comment_options = []
+                            for idx, row in case_notes_df_display.iterrows():
+                                date_note = row.get('Day of Case Note', 'No date')
+                                case_note = row.get('Case Notes', 'No note')
+                                # Truncate long notes for display
+                                display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
+                                comment_options.append(f"{date_note}: {display_note}")
+                            
+                            if comment_options:
+                                selected_comment_idx = st.selectbox(
+                                    "Choose comment to edit:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"edit_comment_{selected_youth}"
+                                )
+                                
+                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_youth}"):
+                                    st.session_state[f"editing_comment_{selected_youth}"] = selected_comment_idx
+                                    st.session_state[f"edit_note_date_{selected_youth}"] = case_notes_df_display.iloc[selected_comment_idx]['Day of Case Note']
+                                    st.session_state[f"edit_note_text_{selected_youth}"] = case_notes_df_display.iloc[selected_comment_idx]['Case Notes']
+                                    st.rerun()
+                            
+                            # Edit form
+                            if f"editing_comment_{selected_youth}" in st.session_state:
+                                st.markdown("#### ✏️ Edit Comment")
+                                with st.form(key=f"edit_form_{selected_youth}"):
+                                    edit_date = st.date_input(
+                                        "Edit Date:",
+                                        value=pd.to_datetime(st.session_state[f"edit_note_date_{selected_youth}"], errors='coerce').date() if pd.notna(pd.to_datetime(st.session_state[f"edit_note_date_{selected_youth}"], errors='coerce')) else datetime.today().date(),
+                                        key=f"edit_date_{selected_youth}"
+                                    )
+                                    
+                                    edit_note = st.text_area(
+                                        "Edit your note:",
+                                        value=st.session_state[f"edit_note_text_{selected_youth}"],
+                                        height=100,
+                                        key=f"edit_note_{selected_youth}"
+                                    )
+                                    
+                                    col_save, col_cancel = st.columns(2)
+                                    
+                                    with col_save:
+                                        save_button = st.form_submit_button("💾 Save Changes")
+                                    
+                                    with col_cancel:
+                                        cancel_button = st.form_submit_button("❌ Cancel")
+                                    
+                                    if save_button:
+                                        if edit_note.strip():
+                                            try:
+                                                # Get the original row index in the full dataframe
+                                                original_idx = filtered_df.index[selected_comment_idx]
+                                                
+                                                # Update the specific row in Google Sheets
+                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                
+                                                # Update the row with new data
+                                                updated_row_data = filtered_df.iloc[selected_comment_idx].copy()
+                                                updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
+                                                updated_row_data['Case Notes'] = edit_note.strip()
+                                                
+                                                # Convert to list and update the sheet
+                                                updated_row = [updated_row_data.get(col, '') for col in grit_df.columns]
+                                                worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
+                                                
+                                                st.success(f"✅ Comment updated successfully for {selected_youth}")
+                                                
+                                                # Clear session state
+                                                if f"editing_comment_{selected_youth}" in st.session_state:
+                                                    del st.session_state[f"editing_comment_{selected_youth}"]
+                                                if f"edit_note_date_{selected_youth}" in st.session_state:
+                                                    del st.session_state[f"edit_note_date_{selected_youth}"]
+                                                if f"edit_note_text_{selected_youth}" in st.session_state:
+                                                    del st.session_state[f"edit_note_text_{selected_youth}"]
+                                                
+                                                time.sleep(2)
+                                                st.rerun()
+                                                
+                                            except Exception as e:
+                                                st.error(f"❌ Error updating comment: {str(e)}")
+                                        else:
+                                            st.warning("⚠️ Please enter a note before saving.")
+                                    
+                                    if cancel_button:
+                                        # Clear session state
+                                        if f"editing_comment_{selected_youth}" in st.session_state:
+                                            del st.session_state[f"editing_comment_{selected_youth}"]
+                                        if f"edit_note_date_{selected_youth}" in st.session_state:
+                                            del st.session_state[f"edit_note_date_{selected_youth}"]
+                                        if f"edit_note_text_{selected_youth}" in st.session_state:
+                                            del st.session_state[f"edit_note_text_{selected_youth}"]
+                                        st.rerun()
+                            
+                            # Display the table
                             st.table(case_notes_df_display)
                         else:
                             st.info("No case notes available for this youth.")
@@ -996,6 +1093,103 @@ else:
                         if not case_notes_df.empty:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
+                            
+                            # Add edit functionality
+                            st.markdown("**Select a comment to edit:**")
+                            comment_options = []
+                            for idx, row in case_notes_df_display.iterrows():
+                                date_note = row.get('Day of Case Note', 'No date')
+                                case_note = row.get('Case Notes', 'No note')
+                                # Truncate long notes for display
+                                display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
+                                comment_options.append(f"{date_note}: {display_note}")
+                            
+                            if comment_options:
+                                selected_comment_idx = st.selectbox(
+                                    "Choose comment to edit:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"edit_comment_{selected_client}"
+                                )
+                                
+                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_client}"):
+                                    st.session_state[f"editing_comment_{selected_client}"] = selected_comment_idx
+                                    st.session_state[f"edit_note_date_{selected_client}"] = case_notes_df_display.iloc[selected_comment_idx]['Day of Case Note']
+                                    st.session_state[f"edit_note_text_{selected_client}"] = case_notes_df_display.iloc[selected_comment_idx]['Case Notes']
+                                    st.rerun()
+                            
+                            # Edit form
+                            if f"editing_comment_{selected_client}" in st.session_state:
+                                st.markdown("#### ✏️ Edit Comment")
+                                with st.form(key=f"edit_form_{selected_client}"):
+                                    edit_date = st.date_input(
+                                        "Edit Date:",
+                                        value=pd.to_datetime(st.session_state[f"edit_note_date_{selected_client}"], errors='coerce').date() if pd.notna(pd.to_datetime(st.session_state[f"edit_note_date_{selected_client}"], errors='coerce')) else datetime.today().date(),
+                                        key=f"edit_date_{selected_client}"
+                                    )
+                                    
+                                    edit_note = st.text_area(
+                                        "Edit your note:",
+                                        value=st.session_state[f"edit_note_text_{selected_client}"],
+                                        height=100,
+                                        key=f"edit_note_{selected_client}"
+                                    )
+                                    
+                                    col_save, col_cancel = st.columns(2)
+                                    
+                                    with col_save:
+                                        save_button = st.form_submit_button("💾 Save Changes")
+                                    
+                                    with col_cancel:
+                                        cancel_button = st.form_submit_button("❌ Cancel")
+                                    
+                                    if save_button:
+                                        if edit_note.strip():
+                                            try:
+                                                # Get the original row index in the full dataframe
+                                                original_idx = filtered_df.index[selected_comment_idx]
+                                                
+                                                # Update the specific row in Google Sheets
+                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                
+                                                # Update the row with new data
+                                                updated_row_data = filtered_df.iloc[selected_comment_idx].copy()
+                                                updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
+                                                updated_row_data['Case Notes'] = edit_note.strip()
+                                                
+                                                # Convert to list and update the sheet
+                                                updated_row = [updated_row_data.get(col, '') for col in ipe_df.columns]
+                                                worksheet2.update(f'A{row_num}:Z{row_num}', [updated_row])
+                                                
+                                                st.success(f"✅ Comment updated successfully for {selected_client}")
+                                                
+                                                # Clear session state
+                                                if f"editing_comment_{selected_client}" in st.session_state:
+                                                    del st.session_state[f"editing_comment_{selected_client}"]
+                                                if f"edit_note_date_{selected_client}" in st.session_state:
+                                                    del st.session_state[f"edit_note_date_{selected_client}"]
+                                                if f"edit_note_text_{selected_client}" in st.session_state:
+                                                    del st.session_state[f"edit_note_text_{selected_client}"]
+                                                
+                                                time.sleep(2)
+                                                st.rerun()
+                                                
+                                            except Exception as e:
+                                                st.error(f"❌ Error updating comment: {str(e)}")
+                                        else:
+                                            st.warning("⚠️ Please enter a note before saving.")
+                                    
+                                    if cancel_button:
+                                        # Clear session state
+                                        if f"editing_comment_{selected_client}" in st.session_state:
+                                            del st.session_state[f"editing_comment_{selected_client}"]
+                                        if f"edit_note_date_{selected_client}" in st.session_state:
+                                            del st.session_state[f"edit_note_date_{selected_client}"]
+                                        if f"edit_note_text_{selected_client}" in st.session_state:
+                                            del st.session_state[f"edit_note_text_{selected_client}"]
+                                        st.rerun()
+                            
+                            # Display the table
                             st.table(case_notes_df_display)
                         else:
                             st.info("No case notes available for this client.")
