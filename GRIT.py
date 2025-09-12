@@ -699,7 +699,7 @@ else:
                                 case_note = row.get('Case Notes', 'No note')
                                 
                                 # Format date to YYYY-MM-DD if it's a valid date
-                                if pd.notna(date_note) and date_note != 'No date':
+                                if pd.notna(date_note) and date_note != 'No date' and str(date_note) != 'NaT':
                                     try:
                                         if isinstance(date_note, str):
                                             # Try to parse the date string and format it
@@ -707,12 +707,15 @@ else:
                                             if pd.notna(parsed_date):
                                                 formatted_date = parsed_date.strftime('%Y-%m-%d')
                                             else:
-                                                formatted_date = str(date_note)
+                                                formatted_date = 'No date'
                                         else:
                                             # If it's already a datetime object
-                                            formatted_date = date_note.strftime('%Y-%m-%d')
+                                            if pd.notna(date_note):
+                                                formatted_date = date_note.strftime('%Y-%m-%d')
+                                            else:
+                                                formatted_date = 'No date'
                                     except:
-                                        formatted_date = str(date_note)
+                                        formatted_date = 'No date'
                                 else:
                                     formatted_date = 'No date'
                                 
@@ -738,9 +741,20 @@ else:
                             if f"editing_comment_{selected_youth}" in st.session_state:
                                 st.markdown("#### ✏️ Edit Comment")
                                 with st.form(key=f"edit_form_{selected_youth}"):
+                                    # Handle NaT and invalid dates properly
+                                    original_date = st.session_state[f"edit_note_date_{selected_youth}"]
+                                    try:
+                                        parsed_date = pd.to_datetime(original_date, errors='coerce')
+                                        if pd.notna(parsed_date):
+                                            default_date = parsed_date.date()
+                                        else:
+                                            default_date = datetime.today().date()
+                                    except:
+                                        default_date = datetime.today().date()
+                                    
                                     edit_date = st.date_input(
                                         "Edit Date:",
-                                        value=pd.to_datetime(st.session_state[f"edit_note_date_{selected_youth}"], errors='coerce').date() if pd.notna(pd.to_datetime(st.session_state[f"edit_note_date_{selected_youth}"], errors='coerce')) else datetime.today().date(),
+                                        value=default_date,
                                         key=f"edit_date_{selected_youth}"
                                     )
                                     
@@ -1239,7 +1253,7 @@ else:
                                 case_note = row.get('Case Notes', 'No note')
                                 
                                 # Format date to YYYY-MM-DD if it's a valid date
-                                if pd.notna(date_note) and date_note != 'No date':
+                                if pd.notna(date_note) and date_note != 'No date' and str(date_note) != 'NaT':
                                     try:
                                         if isinstance(date_note, str):
                                             # Try to parse the date string and format it
@@ -1247,12 +1261,15 @@ else:
                                             if pd.notna(parsed_date):
                                                 formatted_date = parsed_date.strftime('%Y-%m-%d')
                                             else:
-                                                formatted_date = str(date_note)
+                                                formatted_date = 'No date'
                                         else:
                                             # If it's already a datetime object
-                                            formatted_date = date_note.strftime('%Y-%m-%d')
+                                            if pd.notna(date_note):
+                                                formatted_date = date_note.strftime('%Y-%m-%d')
+                                            else:
+                                                formatted_date = 'No date'
                                     except:
-                                        formatted_date = str(date_note)
+                                        formatted_date = 'No date'
                                 else:
                                     formatted_date = 'No date'
                                 
@@ -1278,9 +1295,20 @@ else:
                             if f"editing_comment_{selected_client}" in st.session_state:
                                 st.markdown("#### ✏️ Edit Comment")
                                 with st.form(key=f"edit_form_{selected_client}"):
+                                    # Handle NaT and invalid dates properly
+                                    original_date = st.session_state[f"edit_note_date_{selected_client}"]
+                                    try:
+                                        parsed_date = pd.to_datetime(original_date, errors='coerce')
+                                        if pd.notna(parsed_date):
+                                            default_date = parsed_date.date()
+                                        else:
+                                            default_date = datetime.today().date()
+                                    except:
+                                        default_date = datetime.today().date()
+                                    
                                     edit_date = st.date_input(
                                         "Edit Date:",
-                                        value=pd.to_datetime(st.session_state[f"edit_note_date_{selected_client}"], errors='coerce').date() if pd.notna(pd.to_datetime(st.session_state[f"edit_note_date_{selected_client}"], errors='coerce')) else datetime.today().date(),
+                                        value=default_date,
                                         key=f"edit_date_{selected_client}"
                                     )
                                     
