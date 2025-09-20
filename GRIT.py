@@ -494,8 +494,8 @@ else:
                 
                 # Check if 'Day of Case Note' column exists and convert to datetime
                 if 'Day of Case Note' in grit_df.columns:
-                    # Convert to datetime if not already
-                    grit_df['Day of Case Note'] = pd.to_datetime(grit_df['Day of Case Note'], errors='coerce')
+                    # Convert to datetime if not already, specifying format to avoid warnings
+                    grit_df['Day of Case Note'] = pd.to_datetime(grit_df['Day of Case Note'], format='%m/%d/%Y', errors='coerce')
                     current_year_data = grit_df[grit_df['Day of Case Note'].dt.year == current_year].copy()
                 else:
                     current_year_data = pd.DataFrame()  # Empty dataframe if column doesn't exist
@@ -695,7 +695,7 @@ else:
                             case_notes_df_display_sorted = case_notes_df_display.copy()
                             if 'Day of Case Note' in case_notes_df_display_sorted.columns:
                                 # Convert to datetime for proper sorting
-                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], errors='coerce')
+                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], format='%m/%d/%Y', errors='coerce')
                                 # Sort by date (oldest first)
                                 case_notes_df_display_sorted = case_notes_df_display_sorted.sort_values('Day of Case Note', na_position='last')
                                 # Convert back to string for display
@@ -1105,8 +1105,8 @@ else:
                 
                 # Check if 'Day of Case Note' column exists and convert to datetime
                 if 'Day of Case Note' in ipe_df.columns:
-                    # Convert to datetime if not already
-                    ipe_df['Day of Case Note'] = pd.to_datetime(ipe_df['Day of Case Note'], errors='coerce')
+                    # Convert to datetime if not already, specifying format to avoid warnings
+                    ipe_df['Day of Case Note'] = pd.to_datetime(ipe_df['Day of Case Note'], format='%m/%d/%Y', errors='coerce')
                     current_year_data = ipe_df[ipe_df['Day of Case Note'].dt.year == current_year].copy()
                 else:
                     current_year_data = pd.DataFrame()  # Empty dataframe if column doesn't exist
@@ -1325,7 +1325,7 @@ else:
                             case_notes_df_display_sorted = case_notes_df_display.copy()
                             if 'Day of Case Note' in case_notes_df_display_sorted.columns:
                                 # Convert to datetime for proper sorting
-                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], errors='coerce')
+                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], format='%m/%d/%Y', errors='coerce')
                                 # Sort by date (oldest first)
                                 case_notes_df_display_sorted = case_notes_df_display_sorted.sort_values('Day of Case Note', na_position='last')
                                 # Convert back to string for display
