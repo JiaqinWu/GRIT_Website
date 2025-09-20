@@ -691,10 +691,22 @@ else:
                                     lambda x: pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d') if pd.notna(pd.to_datetime(x, errors='coerce')) else str(x)
                                 )
                             
+                            # Sort notes chronologically by Day of Case Note
+                            case_notes_df_display_sorted = case_notes_df_display.copy()
+                            if 'Day of Case Note' in case_notes_df_display_sorted.columns:
+                                # Convert to datetime for proper sorting
+                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], errors='coerce')
+                                # Sort by date (oldest first)
+                                case_notes_df_display_sorted = case_notes_df_display_sorted.sort_values('Day of Case Note', na_position='last')
+                                # Convert back to string for display
+                                case_notes_df_display_sorted['Day of Case Note'] = case_notes_df_display_sorted['Day of Case Note'].apply(
+                                    lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else 'No date'
+                                )
+                            
                             # Add edit functionality
-                            st.markdown("**Select a comment to edit:**")
+                            st.markdown("**Select a comment to edit or delete:**")
                             comment_options = []
-                            for idx, row in case_notes_df_display.iterrows():
+                            for idx, row in case_notes_df_display_sorted.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
                                 
@@ -724,18 +736,77 @@ else:
                                 comment_options.append(f"{formatted_date}: {display_note}")
                             
                             if comment_options:
-                                selected_comment_idx = st.selectbox(
-                                    "Choose comment to edit:",
-                                    range(len(comment_options)),
-                                    format_func=lambda x: comment_options[x],
-                                    key=f"edit_comment_{selected_youth}"
-                                )
+                                col_edit, col_delete = st.columns(2)
                                 
-                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_youth}"):
-                                    st.session_state[f"editing_comment_{selected_youth}"] = selected_comment_idx
-                                    st.session_state[f"edit_note_date_{selected_youth}"] = case_notes_df_display.iloc[selected_comment_idx]['Day of Case Note']
-                                    st.session_state[f"edit_note_text_{selected_youth}"] = case_notes_df_display.iloc[selected_comment_idx]['Case Notes']
-                                    st.rerun()
+                                with col_edit:
+                                    selected_comment_idx = st.selectbox(
+                                        "Choose comment to edit:",
+                                        range(len(comment_options)),
+                                        format_func=lambda x: comment_options[x],
+                                        key=f"edit_comment_{selected_youth}"
+                                    )
+                                
+                                with col_delete:
+                                    selected_delete_idx = st.selectbox(
+                                        "Choose comment to delete:",
+                                        range(len(comment_options)),
+                                        format_func=lambda x: comment_options[x],
+                                        key=f"delete_comment_{selected_youth}"
+                                    )
+                                
+                                col_edit_btn, col_delete_btn = st.columns(2)
+                                
+                                with col_edit_btn:
+                                    if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_youth}"):
+                                        st.session_state[f"editing_comment_{selected_youth}"] = selected_comment_idx
+                                        st.session_state[f"edit_note_date_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
+                                        st.session_state[f"edit_note_text_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
+                                        st.rerun()
+                                
+                                with col_delete_btn:
+                                    if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_youth}"):
+                                        st.session_state[f"deleting_comment_{selected_youth}"] = selected_delete_idx
+                                        st.rerun()
+                                
+                                # Delete confirmation
+                                if f"deleting_comment_{selected_youth}" in st.session_state:
+                                    st.warning("⚠️ Are you sure you want to delete this comment? This action cannot be undone.")
+                                    col_confirm, col_cancel_del = st.columns(2)
+                                    
+                                    with col_confirm:
+                                        if st.button("✅ Confirm Delete", key=f"confirm_delete_{selected_youth}"):
+                                            try:
+                                                # Get the original row index in the full dataframe using sorted data
+                                                delete_idx = st.session_state[f"deleting_comment_{selected_youth}"]
+                                                sorted_idx = case_notes_df_display_sorted.index[delete_idx]
+                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
+                                                
+                                                # Delete the specific row in Google Sheets
+                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                
+                                                # Delete the row by clearing it
+                                                worksheet1.batch_clear([f'A{row_num}:Z{row_num}'])
+                                                
+                                                # Clear cache to show updated data
+                                                fetch_google_sheets_data.clear()
+                                                
+                                                st.success(f"✅ Comment deleted successfully for {selected_youth}")
+                                                
+                                                # Clear session state
+                                                if f"deleting_comment_{selected_youth}" in st.session_state:
+                                                    del st.session_state[f"deleting_comment_{selected_youth}"]
+                                                
+                                                time.sleep(2)
+                                                st.rerun()
+                                                
+                                            except Exception as e:
+                                                st.error(f"❌ Error deleting comment: {str(e)}")
+                                    
+                                    with col_cancel_del:
+                                        if st.button("❌ Cancel Delete", key=f"cancel_delete_{selected_youth}"):
+                                            if f"deleting_comment_{selected_youth}" in st.session_state:
+                                                del st.session_state[f"deleting_comment_{selected_youth}"]
+                                            st.rerun()
                             
                             # Edit form
                             if f"editing_comment_{selected_youth}" in st.session_state:
@@ -776,14 +847,15 @@ else:
                                     if save_button:
                                         if edit_note.strip():
                                             try:
-                                                # Get the original row index in the full dataframe
-                                                original_idx = filtered_df.index[selected_comment_idx]
+                                                # Get the original row index in the full dataframe using sorted data
+                                                sorted_idx = case_notes_df_display_sorted.index[selected_comment_idx]
+                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
                                                 
                                                 # Update the specific row in Google Sheets
                                                 row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
                                                 
-                                                # Update the row with new data
-                                                updated_row_data = filtered_df.iloc[selected_comment_idx].copy()
+                                                # Update the row with new data using sorted data
+                                                updated_row_data = case_notes_df_display_sorted.iloc[selected_comment_idx].copy()
                                                 updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
                                                 updated_row_data['Case Notes'] = edit_note.strip()
                                                 
@@ -839,8 +911,8 @@ else:
                                             del st.session_state[f"edit_note_text_{selected_youth}"]
                                         st.rerun()
                             
-                            # Display the table with formatted dates
-                            st.table(case_notes_df_display_formatted)
+                            # Display the table with formatted dates (chronologically sorted)
+                            st.table(case_notes_df_display_sorted)
                         else:
                             st.info("No case notes available for this youth.")
                     else:
@@ -1249,10 +1321,22 @@ else:
                                     lambda x: pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d') if pd.notna(pd.to_datetime(x, errors='coerce')) else str(x)
                                 )
                             
+                            # Sort notes chronologically by Day of Case Note
+                            case_notes_df_display_sorted = case_notes_df_display.copy()
+                            if 'Day of Case Note' in case_notes_df_display_sorted.columns:
+                                # Convert to datetime for proper sorting
+                                case_notes_df_display_sorted['Day of Case Note'] = pd.to_datetime(case_notes_df_display_sorted['Day of Case Note'], errors='coerce')
+                                # Sort by date (oldest first)
+                                case_notes_df_display_sorted = case_notes_df_display_sorted.sort_values('Day of Case Note', na_position='last')
+                                # Convert back to string for display
+                                case_notes_df_display_sorted['Day of Case Note'] = case_notes_df_display_sorted['Day of Case Note'].apply(
+                                    lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else 'No date'
+                                )
+                            
                             # Add edit functionality
-                            st.markdown("**Select a comment to edit:**")
+                            st.markdown("**Select a comment to edit or delete:**")
                             comment_options = []
-                            for idx, row in case_notes_df_display.iterrows():
+                            for idx, row in case_notes_df_display_sorted.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
                                 
@@ -1282,18 +1366,77 @@ else:
                                 comment_options.append(f"{formatted_date}: {display_note}")
                             
                             if comment_options:
-                                selected_comment_idx = st.selectbox(
-                                    "Choose comment to edit:",
-                                    range(len(comment_options)),
-                                    format_func=lambda x: comment_options[x],
-                                    key=f"edit_comment_{selected_client}"
-                                )
+                                col_edit, col_delete = st.columns(2)
                                 
-                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_client}"):
-                                    st.session_state[f"editing_comment_{selected_client}"] = selected_comment_idx
-                                    st.session_state[f"edit_note_date_{selected_client}"] = case_notes_df_display.iloc[selected_comment_idx]['Day of Case Note']
-                                    st.session_state[f"edit_note_text_{selected_client}"] = case_notes_df_display.iloc[selected_comment_idx]['Case Notes']
-                                    st.rerun()
+                                with col_edit:
+                                    selected_comment_idx = st.selectbox(
+                                        "Choose comment to edit:",
+                                        range(len(comment_options)),
+                                        format_func=lambda x: comment_options[x],
+                                        key=f"edit_comment_{selected_client}"
+                                    )
+                                
+                                with col_delete:
+                                    selected_delete_idx = st.selectbox(
+                                        "Choose comment to delete:",
+                                        range(len(comment_options)),
+                                        format_func=lambda x: comment_options[x],
+                                        key=f"delete_comment_{selected_client}"
+                                    )
+                                
+                                col_edit_btn, col_delete_btn = st.columns(2)
+                                
+                                with col_edit_btn:
+                                    if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_client}"):
+                                        st.session_state[f"editing_comment_{selected_client}"] = selected_comment_idx
+                                        st.session_state[f"edit_note_date_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
+                                        st.session_state[f"edit_note_text_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
+                                        st.rerun()
+                                
+                                with col_delete_btn:
+                                    if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_client}"):
+                                        st.session_state[f"deleting_comment_{selected_client}"] = selected_delete_idx
+                                        st.rerun()
+                                
+                                # Delete confirmation
+                                if f"deleting_comment_{selected_client}" in st.session_state:
+                                    st.warning("⚠️ Are you sure you want to delete this comment? This action cannot be undone.")
+                                    col_confirm, col_cancel_del = st.columns(2)
+                                    
+                                    with col_confirm:
+                                        if st.button("✅ Confirm Delete", key=f"confirm_delete_{selected_client}"):
+                                            try:
+                                                # Get the original row index in the full dataframe using sorted data
+                                                delete_idx = st.session_state[f"deleting_comment_{selected_client}"]
+                                                sorted_idx = case_notes_df_display_sorted.index[delete_idx]
+                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
+                                                
+                                                # Delete the specific row in Google Sheets
+                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                
+                                                # Delete the row by clearing it
+                                                worksheet2.batch_clear([f'A{row_num}:Z{row_num}'])
+                                                
+                                                # Clear cache to show updated data
+                                                fetch_google_sheets_data.clear()
+                                                
+                                                st.success(f"✅ Comment deleted successfully for {selected_client}")
+                                                
+                                                # Clear session state
+                                                if f"deleting_comment_{selected_client}" in st.session_state:
+                                                    del st.session_state[f"deleting_comment_{selected_client}"]
+                                                
+                                                time.sleep(2)
+                                                st.rerun()
+                                                
+                                            except Exception as e:
+                                                st.error(f"❌ Error deleting comment: {str(e)}")
+                                    
+                                    with col_cancel_del:
+                                        if st.button("❌ Cancel Delete", key=f"cancel_delete_{selected_client}"):
+                                            if f"deleting_comment_{selected_client}" in st.session_state:
+                                                del st.session_state[f"deleting_comment_{selected_client}"]
+                                            st.rerun()
                             
                             # Edit form
                             if f"editing_comment_{selected_client}" in st.session_state:
@@ -1334,14 +1477,15 @@ else:
                                     if save_button:
                                         if edit_note.strip():
                                             try:
-                                                # Get the original row index in the full dataframe
-                                                original_idx = filtered_df.index[selected_comment_idx]
+                                                # Get the original row index in the full dataframe using sorted data
+                                                sorted_idx = case_notes_df_display_sorted.index[selected_comment_idx]
+                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
                                                 
                                                 # Update the specific row in Google Sheets
                                                 row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
                                                 
-                                                # Update the row with new data
-                                                updated_row_data = filtered_df.iloc[selected_comment_idx].copy()
+                                                # Update the row with new data using sorted data
+                                                updated_row_data = case_notes_df_display_sorted.iloc[selected_comment_idx].copy()
                                                 updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
                                                 updated_row_data['Case Notes'] = edit_note.strip()
                                                 
@@ -1397,8 +1541,8 @@ else:
                                             del st.session_state[f"edit_note_text_{selected_client}"]
                                         st.rerun()
                             
-                            # Display the table with formatted dates
-                            st.table(case_notes_df_display_formatted)
+                            # Display the table with formatted dates (chronologically sorted)
+                            st.table(case_notes_df_display_sorted)
                         else:
                             st.info("No case notes available for this client.")
                     else:
