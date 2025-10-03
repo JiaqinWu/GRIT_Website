@@ -615,7 +615,7 @@ else:
                             st.warning("⚠️ Please fill in Youth Name and Case Notes before submitting.")
                         
 
-            with st.expander("📝 **Add New Note**"):
+            with st.expander("📝 **Add/Edit/Delete Note**"):
                 # Add client filter in sidebar
                 st.markdown("### 🔍 Filter by Youth")
                 unique_youths = sorted(grit_df['Youth Name'].dropna().unique())
@@ -1230,7 +1230,7 @@ else:
 
 
             # Add client filter in sidebar
-            with st.expander("📝 **Add New Note**"):
+            with st.expander("📝 **Add/Edit/Delete Note**"):
                 st.markdown("### 🔍 Filter by Client")
                 unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
                 selected_client = st.selectbox(
