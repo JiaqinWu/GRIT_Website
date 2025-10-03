@@ -812,7 +812,7 @@ else:
                                             st.rerun()
                             
                             # Edit form
-                             if f"editing_comment_{selected_youth}" in st.session_state:
+                            if f"editing_comment_{selected_youth}" in st.session_state:
                                 st.markdown("#### ✏️ Edit Comment")
                                 with st.form(key=f"edit_form_{selected_youth}"):
                                     # Handle NaT and invalid dates properly
