@@ -679,7 +679,9 @@ else:
                     case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
                     
                     if case_notes_available:
-                        case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
+                        # Track original sheet row for reliable edit/delete
+                        filtered_df['_sheet_row'] = filtered_df.index + 2
+                        case_notes_df = filtered_df[case_notes_available + ['_sheet_row']].dropna(subset=case_notes_available, how='all')
                         if not case_notes_df.empty:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
@@ -706,9 +708,11 @@ else:
                             # Add edit functionality
                             st.markdown("**Select a comment to edit or delete:**")
                             comment_options = []
+                            option_sheet_rows = []
                             for idx, row in case_notes_df_display_sorted.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
+                                sheet_row = row.get('_sheet_row', None)
                                 
                                 # Format date to YYYY-MM-DD if it's a valid date
                                 if pd.notna(date_note) and date_note != 'No date' and str(date_note) != 'NaT':
@@ -734,6 +738,7 @@ else:
                                 # Truncate long notes for display
                                 display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
                                 comment_options.append(f"{formatted_date}: {display_note}")
+                                option_sheet_rows.append(int(sheet_row) if sheet_row is not None and str(sheet_row).isdigit() else None)
                             
                             if comment_options:
                                 col_edit, col_delete = st.columns(2)
@@ -776,13 +781,11 @@ else:
                                     with col_confirm:
                                         if st.button("✅ Confirm Delete", key=f"confirm_delete_{selected_youth}"):
                                             try:
-                                                # Get the original row index in the full dataframe using sorted data
+                                                # Get sheet row directly from tracked mapping
                                                 delete_idx = st.session_state[f"deleting_comment_{selected_youth}"]
-                                                sorted_idx = case_notes_df_display_sorted.index[delete_idx]
-                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
-                                                
-                                                # Delete the specific row in Google Sheets
-                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                row_num = option_sheet_rows[delete_idx]
+                                                if row_num is None:
+                                                    raise ValueError("Unable to resolve sheet row for deletion.")
                                                 
                                                 # Delete the row by clearing it
                                                 worksheet1.batch_clear([f'A{row_num}:Z{row_num}'])
@@ -809,7 +812,7 @@ else:
                                             st.rerun()
                             
                             # Edit form
-                            if f"editing_comment_{selected_youth}" in st.session_state:
+                             if f"editing_comment_{selected_youth}" in st.session_state:
                                 st.markdown("#### ✏️ Edit Comment")
                                 with st.form(key=f"edit_form_{selected_youth}"):
                                     # Handle NaT and invalid dates properly
@@ -844,41 +847,34 @@ else:
                                     with col_cancel:
                                         cancel_button = st.form_submit_button("❌ Cancel")
                                     
-                                    if save_button:
+                                     if save_button:
                                         if edit_note.strip():
                                             try:
-                                                # Get the original row index in the full dataframe using sorted data
-                                                sorted_idx = case_notes_df_display_sorted.index[selected_comment_idx]
-                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
-                                                
-                                                # Update the specific row in Google Sheets
-                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
-                                                
-                                                # Update the row with new data using sorted data
-                                                updated_row_data = case_notes_df_display_sorted.iloc[selected_comment_idx].copy()
-                                                updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
-                                                updated_row_data['Case Notes'] = edit_note.strip()
-                                                
-                                                # Convert to list and update the sheet, ensuring all values are strings
-                                                updated_row = []
-                                                for col in grit_df.columns:
-                                                    value = updated_row_data.get(col, '')
-                                                    # Convert pandas Timestamp and other non-string types to string
-                                                    try:
-                                                        if hasattr(value, 'strftime') and pd.notna(value):
-                                                            # Handle datetime objects that are not NaT
-                                                            updated_row.append(value.strftime('%m/%d/%Y'))
-                                                        elif pd.isna(value) or str(value) == 'NaT':
-                                                            # Handle NaN and NaT values
-                                                            updated_row.append('')
-                                                        else:
-                                                            # Convert everything else to string
-                                                            updated_row.append(str(value))
-                                                    except:
-                                                        # Fallback for any other errors
-                                                        updated_row.append('')
-                                                
-                                                worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
+                                                 # Resolve edit index and sheet row
+                                                 edit_idx = st.session_state[f"editing_comment_{selected_youth}"]
+                                                 row_num = option_sheet_rows[edit_idx]
+                                                 if row_num is None:
+                                                     raise ValueError("Unable to resolve sheet row for update.")
+                                                 df_row_idx = int(row_num) - 2
+                                                 # Start from the full existing row to avoid wiping other fields
+                                                 current_row = grit_df.iloc[df_row_idx].copy() if 0 <= df_row_idx < len(grit_df) else pd.Series(index=grit_df.columns)
+                                                 current_row = current_row.reindex(grit_df.columns)
+                                                 current_row['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
+                                                 current_row['Case Notes'] = edit_note.strip()
+                                                 # Convert to list of strings
+                                                 updated_row = []
+                                                 for col in grit_df.columns:
+                                                     value = current_row.get(col, '')
+                                                     try:
+                                                         if hasattr(value, 'strftime') and pd.notna(value):
+                                                             updated_row.append(value.strftime('%m/%d/%Y'))
+                                                         elif pd.isna(value) or str(value) == 'NaT':
+                                                             updated_row.append('')
+                                                         else:
+                                                             updated_row.append(str(value))
+                                                     except:
+                                                         updated_row.append('')
+                                                 worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
                                                 # Clear cache to show updated data
                                                 fetch_google_sheets_data.clear()
@@ -922,7 +918,7 @@ else:
                     st.markdown("#### 📝 Add New Note")
                     
                     with st.form(key=f"note_form_{selected_youth}"):
-                        # Date selection for the new note
+                         # Date selection for the new note
                         note_date = st.date_input(
                             "Note Date:",
                             value=datetime.today().date(),
@@ -941,10 +937,10 @@ else:
                         submit_button = st.form_submit_button("➕ Add Note")
                         
                         if submit_button:
-                            if new_note.strip():
+                             if new_note.strip():
                                 try:
-                                    # Format the date as string
-                                    note_date_str = note_date.strftime('%m/%d/%y')
+                                    # Format the date as string (4-digit year)
+                                    note_date_str = note_date.strftime('%m/%d/%Y')
                                     
                                     # Prepare the new row data
                                     new_row_data = {
@@ -962,7 +958,7 @@ else:
                                     new_row = [new_row_data.get(col, '') for col in grit_df.columns]
                                     
                                     # Append to Google Sheets
-                                    worksheet1.append_row(new_row)
+                                     worksheet1.append_row(new_row)
                                     
                                     # Clear cache to show updated data
                                     fetch_google_sheets_data.clear()
@@ -1309,7 +1305,9 @@ else:
                     case_notes_available = [col for col in case_notes_columns if col in filtered_df.columns]
                     
                     if case_notes_available:
-                        case_notes_df = filtered_df[case_notes_available].dropna(subset=case_notes_available, how='all')
+                        # Track original sheet row for reliable edit/delete
+                        filtered_df['_sheet_row'] = filtered_df.index + 2
+                        case_notes_df = filtered_df[case_notes_available + ['_sheet_row']].dropna(subset=case_notes_available, how='all')
                         if not case_notes_df.empty:
                             # Reset index to remove index column from display
                             case_notes_df_display = case_notes_df.reset_index(drop=True)
@@ -1336,9 +1334,11 @@ else:
                             # Add edit functionality
                             st.markdown("**Select a comment to edit or delete:**")
                             comment_options = []
+                            option_sheet_rows = []
                             for idx, row in case_notes_df_display_sorted.iterrows():
                                 date_note = row.get('Day of Case Note', 'No date')
                                 case_note = row.get('Case Notes', 'No note')
+                                sheet_row = row.get('_sheet_row', None)
                                 
                                 # Format date to YYYY-MM-DD if it's a valid date
                                 if pd.notna(date_note) and date_note != 'No date' and str(date_note) != 'NaT':
@@ -1364,6 +1364,7 @@ else:
                                 # Truncate long notes for display
                                 display_note = case_note[:50] + "..." if len(case_note) > 50 else case_note
                                 comment_options.append(f"{formatted_date}: {display_note}")
+                                option_sheet_rows.append(int(sheet_row) if sheet_row is not None and str(sheet_row).isdigit() else None)
                             
                             if comment_options:
                                 col_edit, col_delete = st.columns(2)
@@ -1406,13 +1407,11 @@ else:
                                     with col_confirm:
                                         if st.button("✅ Confirm Delete", key=f"confirm_delete_{selected_client}"):
                                             try:
-                                                # Get the original row index in the full dataframe using sorted data
+                                                # Get sheet row directly from tracked mapping
                                                 delete_idx = st.session_state[f"deleting_comment_{selected_client}"]
-                                                sorted_idx = case_notes_df_display_sorted.index[delete_idx]
-                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
-                                                
-                                                # Delete the specific row in Google Sheets
-                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
+                                                row_num = option_sheet_rows[delete_idx]
+                                                if row_num is None:
+                                                    raise ValueError("Unable to resolve sheet row for deletion.")
                                                 
                                                 # Delete the row by clearing it
                                                 worksheet2.batch_clear([f'A{row_num}:Z{row_num}'])
@@ -1477,37 +1476,30 @@ else:
                                     if save_button:
                                         if edit_note.strip():
                                             try:
-                                                # Get the original row index in the full dataframe using sorted data
-                                                sorted_idx = case_notes_df_display_sorted.index[selected_comment_idx]
-                                                original_idx = filtered_df.index[filtered_df.index.get_loc(sorted_idx)]
-                                                
-                                                # Update the specific row in Google Sheets
-                                                row_num = original_idx + 2  # +2 because Google Sheets is 1-indexed and we skip header
-                                                
-                                                # Update the row with new data using sorted data
-                                                updated_row_data = case_notes_df_display_sorted.iloc[selected_comment_idx].copy()
-                                                updated_row_data['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
-                                                updated_row_data['Case Notes'] = edit_note.strip()
-                                                
-                                                # Convert to list and update the sheet, ensuring all values are strings
+                                                # Resolve edit index and sheet row
+                                                edit_idx = st.session_state[f"editing_comment_{selected_client}"]
+                                                row_num = option_sheet_rows[edit_idx]
+                                                if row_num is None:
+                                                    raise ValueError("Unable to resolve sheet row for update.")
+                                                df_row_idx = int(row_num) - 2
+                                                # Start from the full existing row to avoid wiping other fields
+                                                current_row = ipe_df.iloc[df_row_idx].copy() if 0 <= df_row_idx < len(ipe_df) else pd.Series(index=ipe_df.columns)
+                                                current_row = current_row.reindex(ipe_df.columns)
+                                                current_row['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
+                                                current_row['Case Notes'] = edit_note.strip()
+                                                # Convert to list of strings
                                                 updated_row = []
                                                 for col in ipe_df.columns:
-                                                    value = updated_row_data.get(col, '')
-                                                    # Convert pandas Timestamp and other non-string types to string
+                                                    value = current_row.get(col, '')
                                                     try:
                                                         if hasattr(value, 'strftime') and pd.notna(value):
-                                                            # Handle datetime objects that are not NaT
                                                             updated_row.append(value.strftime('%m/%d/%Y'))
                                                         elif pd.isna(value) or str(value) == 'NaT':
-                                                            # Handle NaN and NaT values
                                                             updated_row.append('')
                                                         else:
-                                                            # Convert everything else to string
                                                             updated_row.append(str(value))
                                                     except:
-                                                        # Fallback for any other errors
                                                         updated_row.append('')
-                                                
                                                 worksheet2.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
                                                 # Clear cache to show updated data
@@ -1571,10 +1563,10 @@ else:
                         submit_button = st.form_submit_button("➕ Add Note")
                         
                         if submit_button:
-                            if new_note.strip():
+                             if new_note.strip():
                                 try:
-                                    # Format the date as string
-                                    note_date_str = note_date.strftime('%m/%d/%y')
+                                    # Format the date as string (4-digit year)
+                                    note_date_str = note_date.strftime('%m/%d/%Y')
                                     
                                     # Prepare the new row data
                                     new_row_data = {
