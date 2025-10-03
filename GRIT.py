@@ -958,7 +958,7 @@ else:
                                     new_row = [new_row_data.get(col, '') for col in grit_df.columns]
                                     
                                     # Append to Google Sheets
-                                     worksheet1.append_row(new_row)
+                                    worksheet1.append_row(new_row)
                                     
                                     # Clear cache to show updated data
                                     fetch_google_sheets_data.clear()
