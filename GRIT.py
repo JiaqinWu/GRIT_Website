@@ -847,7 +847,7 @@ else:
                                     with col_cancel:
                                         cancel_button = st.form_submit_button("❌ Cancel")
                                     
-                                     if save_button:
+                                    if save_button:
                                         if edit_note.strip():
                                             try:
                                                  # Resolve edit index and sheet row
