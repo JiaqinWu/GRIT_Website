@@ -937,7 +937,9 @@ else:
                         submit_button = st.form_submit_button("➕ Add Note")
                         
                         if submit_button:
-                             if new_note.strip():
+                            if not new_note.strip():
+                                st.warning("⚠️ Please enter a note before adding.")
+                            else:
                                 try:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
@@ -968,8 +970,6 @@ else:
                                     
                                 except Exception as e:
                                     st.error(f"❌ Error adding note: {str(e)}")
-                            else:
-                                st.warning("⚠️ Please enter a note before adding.")
                 else:
                     st.warning(f"No data found for youth: {selected_youth}")
 
