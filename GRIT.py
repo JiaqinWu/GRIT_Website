@@ -850,31 +850,31 @@ else:
                                     if save_button:
                                         if edit_note.strip():
                                             try:
-                                                 # Resolve edit index and sheet row
-                                                 edit_idx = st.session_state[f"editing_comment_{selected_youth}"]
-                                                 row_num = option_sheet_rows[edit_idx]
-                                                 if row_num is None:
-                                                     raise ValueError("Unable to resolve sheet row for update.")
-                                                 df_row_idx = int(row_num) - 2
-                                                 # Start from the full existing row to avoid wiping other fields
-                                                 current_row = grit_df.iloc[df_row_idx].copy() if 0 <= df_row_idx < len(grit_df) else pd.Series(index=grit_df.columns)
-                                                 current_row = current_row.reindex(grit_df.columns)
-                                                 current_row['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
-                                                 current_row['Case Notes'] = edit_note.strip()
-                                                 # Convert to list of strings
-                                                 updated_row = []
-                                                 for col in grit_df.columns:
-                                                     value = current_row.get(col, '')
-                                                     try:
-                                                         if hasattr(value, 'strftime') and pd.notna(value):
-                                                             updated_row.append(value.strftime('%m/%d/%Y'))
-                                                         elif pd.isna(value) or str(value) == 'NaT':
-                                                             updated_row.append('')
-                                                         else:
-                                                             updated_row.append(str(value))
-                                                     except:
-                                                         updated_row.append('')
-                                                 worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
+                                                # Resolve edit index and sheet row
+                                                edit_idx = st.session_state[f"editing_comment_{selected_youth}"]
+                                                row_num = option_sheet_rows[edit_idx]
+                                                if row_num is None:
+                                                    raise ValueError("Unable to resolve sheet row for update.")
+                                                df_row_idx = int(row_num) - 2
+                                                # Start from the full existing row to avoid wiping other fields
+                                                current_row = grit_df.iloc[df_row_idx].copy() if 0 <= df_row_idx < len(grit_df) else pd.Series(index=grit_df.columns)
+                                                current_row = current_row.reindex(grit_df.columns)
+                                                current_row['Day of Case Note'] = edit_date.strftime('%m/%d/%Y')
+                                                current_row['Case Notes'] = edit_note.strip()
+                                                # Convert to list of strings
+                                                updated_row = []
+                                                for col in grit_df.columns:
+                                                    value = current_row.get(col, '')
+                                                    try:
+                                                        if hasattr(value, 'strftime') and pd.notna(value):
+                                                            updated_row.append(value.strftime('%m/%d/%Y'))
+                                                        elif pd.isna(value) or str(value) == 'NaT':
+                                                            updated_row.append('')
+                                                        else:
+                                                            updated_row.append(str(value))
+                                                    except:
+                                                        updated_row.append('')
+                                                worksheet1.update(f'A{row_num}:Z{row_num}', [updated_row])
                                                 
                                                 # Clear cache to show updated data
                                                 fetch_google_sheets_data.clear()
