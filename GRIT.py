@@ -1032,13 +1032,19 @@ else:
         
             
             col1, col2, col3 = st.columns(3)
-            referral_num_ipe = ipe_df['Name of Client'].nunique()
+            has_client_col = 'Name of Client' in ipe_df.columns
+            has_date_received_col = 'Date Received' in ipe_df.columns
+            referral_num_ipe = ipe_df['Name of Client'].nunique() if has_client_col else 0
             # create column span
             today = datetime.today()
             last_year = today - timedelta(days=365)
             last_month = today - timedelta(days=30)
-            pastyear_request_ipe = ipe_df[ipe_df['Date Received'] >= last_year].shape[0]
-            pastmonth_request_ipe = ipe_df[ipe_df['Date Received'] >= last_month].shape[0]
+            if has_date_received_col:
+                pastyear_request_ipe = ipe_df[ipe_df['Date Received'] >= last_year].shape[0]
+                pastmonth_request_ipe = ipe_df[ipe_df['Date Received'] >= last_month].shape[0]
+            else:
+                pastyear_request_ipe = 0
+                pastmonth_request_ipe = 0
 
 
             col1.metric(label="# of Total Referrals", value= millify(referral_num_ipe, precision=2))
@@ -1052,7 +1058,10 @@ else:
                 
                 # Filter data for current calendar year
                 current_year = datetime.now().year
-                current_year_data = ipe_df[ipe_df['Date Received'].dt.year == current_year].copy()
+                if has_date_received_col:
+                    current_year_data = ipe_df[ipe_df['Date Received'].dt.year == current_year].copy()
+                else:
+                    current_year_data = pd.DataFrame()
                 
                 if not current_year_data.empty:
                     # Group by month and count referrals
@@ -1238,16 +1247,20 @@ else:
             # Add client filter in sidebar
             with st.expander("📝 **Add/Edit/Delete Note**"):
                 st.markdown("### 🔍 Filter by Client")
-                unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
-                selected_client = st.selectbox(
-                    "Select a client:",
-                    list(unique_clients),
-                    index=0
-                )
+                if not has_client_col or ipe_df.empty:
+                    st.info("Client name column not found or no data available.")
+                    selected_client = None
+                else:
+                    unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
+                    selected_client = st.selectbox(
+                        "Select a client:",
+                        list(unique_clients),
+                        index=0
+                    )
                 
                 
                 # Filter data based on selected client
-                filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
+                filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy() if selected_client is not None else pd.DataFrame()
                 
                 if not filtered_df.empty:
                     st.markdown("#### 📋 Client Information")
