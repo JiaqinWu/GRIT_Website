@@ -48,7 +48,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(creds_json),
 client = gspread.authorize(creds)
 
 # Cache configuration
-CACHE_DURATION = 300  # 5 minutes in seconds
+CACHE_DURATION = 300  
 
 @st.cache_data(ttl=CACHE_DURATION)
 def fetch_google_sheets_data():
@@ -567,11 +567,14 @@ else:
                                     'Day of Case Note': day_of_case_note.strftime('%m/%d/%Y'),
                                     'Case Notes': case_notes
                                 }
-                                new_row = [new_row_data.get(col, '') for col in grit_df.columns]
-                                worksheet1.append_row(new_row)
+                                # Align to actual sheet headers to avoid mismatch with cleaned DataFrame headers
+                                sheet_headers = worksheet1.row_values(1)
+                                new_row = [new_row_data.get(col, '') for col in sheet_headers]
+                                worksheet1.append_row(new_row, value_input_option='USER_ENTERED')
                                 
                                 # Clear cache to show updated data
                                 fetch_google_sheets_data.clear()
+                                st.session_state.data_last_fetched = 0
                                 
                                 st.success("✅ Referral added successfully!")
 
@@ -1179,11 +1182,14 @@ else:
                                     'Day of Case Note': day_of_case_note.strftime('%m/%d/%Y'),
                                     'Case Notes': case_notes
                                 }
-                                new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
-                                worksheet2.append_row(new_row)
+                                # Align to actual sheet headers to avoid mismatch with cleaned DataFrame headers
+                                sheet_headers = worksheet2.row_values(1)
+                                new_row = [new_row_data.get(col, '') for col in sheet_headers]
+                                worksheet2.append_row(new_row, value_input_option='USER_ENTERED')
                                 
                                 # Clear cache to show updated data
                                 fetch_google_sheets_data.clear()
+                                st.session_state.data_last_fetched = 0
                                 
                                 st.success("✅ Referral added successfully!")
 
