@@ -911,6 +911,7 @@ else:
                                         st.rerun()
                             
                             # Display the table with formatted dates (chronologically sorted)
+                            case_notes_df_display_sorted = case_notes_df_display_sorted[['Day of Case Note', 'Case Notes']].sort_values('Day of Case Note', na_position='last')
                             st.table(case_notes_df_display_sorted)
                         else:
                             st.info("No case notes available for this youth.")
@@ -1553,6 +1554,7 @@ else:
                                         st.rerun()
                             
                             # Display the table with formatted dates (chronologically sorted)
+                            case_notes_df_display_sorted = case_notes_df_display_sorted[['Day of Case Note', 'Case Notes']].sort_values('Day of Case Note', na_position='last')
                             st.table(case_notes_df_display_sorted)
                         else:
                             st.info("No case notes available for this client.")
