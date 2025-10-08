@@ -76,6 +76,7 @@ def fetch_google_sheets_data():
             grit_data = grit_values[1:]  # Skip header row
             grit_df = pd.DataFrame(grit_data, columns=cleaned_headers)
             grit_df['Date'] = pd.to_datetime(grit_df['Date'], errors='coerce')
+            grit_df['Day of Case Note'] = pd.to_datetime(grit_df['Day of Case Note'], errors='coerce')
         else:
             grit_df = pd.DataFrame()
         
@@ -100,6 +101,7 @@ def fetch_google_sheets_data():
             ipe_data = ipe_values[1:]  # Skip header row
             ipe_df = pd.DataFrame(ipe_data, columns=cleaned_headers)
             ipe_df['Date Received'] = pd.to_datetime(ipe_df['Date Received'], errors='coerce')
+            ipe_df['Day of Case Note'] = pd.to_datetime(ipe_df['Day of Case Note'], errors='coerce')
         else:
             ipe_df = pd.DataFrame()
         
