@@ -623,18 +623,29 @@ else:
             with st.expander("📝 **Add/Edit/Delete Note**"):
                 # Add client filter in sidebar
                 st.markdown("### 🔍 Filter by Youth")
-                unique_youths = sorted(grit_df['Youth Name'].dropna().unique())
-                selected_youth = st.selectbox(
-                    "Select a youth:",
-                    list(unique_youths),
-                    index=0
-                )
+                # Filter out NA, blank, and whitespace-only names
+                unique_youths = sorted([name for name in grit_df['Youth Name'].dropna().unique() 
+                                       if isinstance(name, str) and name.strip()])
+                
+                if not unique_youths:
+                    st.warning("⚠️ No valid youth names found in the dataset.")
+                    selected_youth = None
+                else:
+                    selected_youth = st.selectbox(
+                        "Select a youth:",
+                        unique_youths,
+                        index=0
+                    )
                 
                 
                 # Filter data based on selected client
-                filtered_df = grit_df[grit_df['Youth Name'] == selected_youth].copy()
+                if selected_youth is None:
+                    st.warning("⚠️ Please select a valid youth name.")
+                    filtered_df = pd.DataFrame()
+                else:
+                    filtered_df = grit_df[grit_df['Youth Name'] == selected_youth].copy()
                 
-                if not filtered_df.empty:
+                if not filtered_df.empty and selected_youth is not None:
                     st.markdown("#### 📋 Youth Information")
                     
                     # Display main client information in narrative format
@@ -746,37 +757,31 @@ else:
                                 option_sheet_rows.append(int(sheet_row) if sheet_row is not None and str(sheet_row).isdigit() else None)
                             
                             if comment_options:
-                                col_edit, col_delete = st.columns(2)
+                                # Edit comment section (first line)
+                                selected_comment_idx = st.selectbox(
+                                    "Choose comment to edit:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"edit_comment_{selected_youth}"
+                                )
+                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_youth}", use_container_width=True):
+                                    st.session_state[f"editing_comment_{selected_youth}"] = selected_comment_idx
+                                    st.session_state[f"edit_note_date_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
+                                    st.session_state[f"edit_note_text_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
+                                    st.rerun()
                                 
-                                with col_edit:
-                                    selected_comment_idx = st.selectbox(
-                                        "Choose comment to edit:",
-                                        range(len(comment_options)),
-                                        format_func=lambda x: comment_options[x],
-                                        key=f"edit_comment_{selected_youth}"
-                                    )
+                                st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
                                 
-                                with col_delete:
-                                    selected_delete_idx = st.selectbox(
-                                        "Choose comment to delete:",
-                                        range(len(comment_options)),
-                                        format_func=lambda x: comment_options[x],
-                                        key=f"delete_comment_{selected_youth}"
-                                    )
-                                
-                                col_edit_btn, col_delete_btn = st.columns(2)
-                                
-                                with col_edit_btn:
-                                    if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_youth}"):
-                                        st.session_state[f"editing_comment_{selected_youth}"] = selected_comment_idx
-                                        st.session_state[f"edit_note_date_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
-                                        st.session_state[f"edit_note_text_{selected_youth}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
-                                        st.rerun()
-                                
-                                with col_delete_btn:
-                                    if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_youth}"):
-                                        st.session_state[f"deleting_comment_{selected_youth}"] = selected_delete_idx
-                                        st.rerun()
+                                # Delete comment section (second line)
+                                selected_delete_idx = st.selectbox(
+                                    "Choose comment to delete:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"delete_comment_{selected_youth}"
+                                )
+                                if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_youth}", use_container_width=True):
+                                    st.session_state[f"deleting_comment_{selected_youth}"] = selected_delete_idx
+                                    st.rerun()
                                 
                                 # Delete confirmation
                                 if f"deleting_comment_{selected_youth}" in st.session_state:
@@ -945,6 +950,8 @@ else:
                         if submit_button:
                             if not new_note.strip():
                                 st.warning("⚠️ Please enter a note before adding.")
+                            elif selected_youth is None or not selected_youth or not selected_youth.strip():
+                                st.warning("⚠️ Please select a valid youth name before adding a note.")
                             else:
                                 try:
                                     # Format the date as string (4-digit year)
@@ -952,7 +959,7 @@ else:
                                     
                                     # Prepare the new row data
                                     new_row_data = {
-                                        'Youth Name': selected_youth,
+                                        'Youth Name': selected_youth.strip(),
                                         'Day of Case Note': note_date_str,
                                         'Case Notes': new_note.strip()
                                     }
@@ -1254,18 +1261,29 @@ else:
                     st.info("Client name column not found or no data available.")
                     selected_client = None
                 else:
-                    unique_clients = sorted(ipe_df['Name of Client'].dropna().unique())
-                    selected_client = st.selectbox(
-                        "Select a client:",
-                        list(unique_clients),
-                        index=0
-                    )
+                    # Filter out NA, blank, and whitespace-only names
+                    unique_clients = sorted([name for name in ipe_df['Name of Client'].dropna().unique() 
+                                           if isinstance(name, str) and name.strip()])
+                    
+                    if not unique_clients:
+                        st.warning("⚠️ No valid client names found in the dataset.")
+                        selected_client = None
+                    else:
+                        selected_client = st.selectbox(
+                            "Select a client:",
+                            unique_clients,
+                            index=0
+                        )
                 
                 
                 # Filter data based on selected client
-                filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy() if selected_client is not None else pd.DataFrame()
+                if selected_client is None:
+                    st.warning("⚠️ Please select a valid client name.")
+                    filtered_df = pd.DataFrame()
+                else:
+                    filtered_df = ipe_df[ipe_df['Name of Client'] == selected_client].copy()
                 
-                if not filtered_df.empty:
+                if not filtered_df.empty and selected_client is not None:
                     st.markdown("#### 📋 Client Information")
                     
                     # Display main client information in narrative format
@@ -1389,37 +1407,31 @@ else:
                                 option_sheet_rows.append(int(sheet_row) if sheet_row is not None and str(sheet_row).isdigit() else None)
                             
                             if comment_options:
-                                col_edit, col_delete = st.columns(2)
+                                # Edit comment section (first line)
+                                selected_comment_idx = st.selectbox(
+                                    "Choose comment to edit:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"edit_comment_{selected_client}"
+                                )
+                                if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_client}", use_container_width=True):
+                                    st.session_state[f"editing_comment_{selected_client}"] = selected_comment_idx
+                                    st.session_state[f"edit_note_date_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
+                                    st.session_state[f"edit_note_text_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
+                                    st.rerun()
                                 
-                                with col_edit:
-                                    selected_comment_idx = st.selectbox(
-                                        "Choose comment to edit:",
-                                        range(len(comment_options)),
-                                        format_func=lambda x: comment_options[x],
-                                        key=f"edit_comment_{selected_client}"
-                                    )
+                                st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
                                 
-                                with col_delete:
-                                    selected_delete_idx = st.selectbox(
-                                        "Choose comment to delete:",
-                                        range(len(comment_options)),
-                                        format_func=lambda x: comment_options[x],
-                                        key=f"delete_comment_{selected_client}"
-                                    )
-                                
-                                col_edit_btn, col_delete_btn = st.columns(2)
-                                
-                                with col_edit_btn:
-                                    if st.button("✏️ Edit Selected Comment", key=f"edit_btn_{selected_client}"):
-                                        st.session_state[f"editing_comment_{selected_client}"] = selected_comment_idx
-                                        st.session_state[f"edit_note_date_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Day of Case Note']
-                                        st.session_state[f"edit_note_text_{selected_client}"] = case_notes_df_display_sorted.iloc[selected_comment_idx]['Case Notes']
-                                        st.rerun()
-                                
-                                with col_delete_btn:
-                                    if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_client}"):
-                                        st.session_state[f"deleting_comment_{selected_client}"] = selected_delete_idx
-                                        st.rerun()
+                                # Delete comment section (second line)
+                                selected_delete_idx = st.selectbox(
+                                    "Choose comment to delete:",
+                                    range(len(comment_options)),
+                                    format_func=lambda x: comment_options[x],
+                                    key=f"delete_comment_{selected_client}"
+                                )
+                                if st.button("🗑️ Delete Selected Comment", key=f"delete_btn_{selected_client}", use_container_width=True):
+                                    st.session_state[f"deleting_comment_{selected_client}"] = selected_delete_idx
+                                    st.rerun()
                                 
                                 # Delete confirmation
                                 if f"deleting_comment_{selected_client}" in st.session_state:
@@ -1588,6 +1600,8 @@ else:
                         if submit_button:
                             if not new_note.strip():
                                 st.warning("⚠️ Please enter a note before adding.")
+                            elif selected_client is None or not selected_client or not selected_client.strip():
+                                st.warning("⚠️ Please select a valid client name before adding a note.")
                             else:
                                 try:
                                     # Format the date as string (4-digit year)
@@ -1595,7 +1609,7 @@ else:
                                     
                                     # Prepare the new row data
                                     new_row_data = {
-                                        'Name of Client': selected_client,
+                                        'Name of Client': selected_client.strip(),
                                         'Day of Case Note': note_date_str,
                                         'Case Notes': new_note.strip()
                                     }
