@@ -325,12 +325,7 @@ else:
             st.session_state.data_last_fetched = 0
             st.rerun()
     
-    # Show cache status
-    cache_age = int((time.time() - st.session_state.data_last_fetched) / 60)
-    if cache_age > 0:
-        st.sidebar.caption(f"📅 Data cached {cache_age}m ago")
-    else:
-        st.sidebar.caption("📅 Fresh data")
+
 
     st.markdown("""
         <style>
