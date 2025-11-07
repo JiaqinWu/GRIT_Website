@@ -970,32 +970,71 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Prepare the new row data
-                                    new_row_data = {
-                                        'Youth Name': selected_youth.strip(),
-                                        'Day of Case Note': note_date_str,
-                                        'Case Notes': new_note.strip()
-                                    }
+                                    # Get the actual sheet headers (not cleaned DataFrame headers)
+                                    sheet_headers = worksheet1.row_values(1)
                                     
-                                    # Add empty values for other columns to maintain structure
-                                    for col in grit_df.columns:
-                                        if col not in new_row_data:
-                                            new_row_data[col] = ''
-                                    
-                                    # Convert to list in the correct order
-                                    new_row = [new_row_data.get(col, '') for col in grit_df.columns]
+                                    # Get the first entry for this youth to preserve their information
+                                    youth_entries = grit_df[grit_df['Youth Name'] == selected_youth]
+                                    if not youth_entries.empty:
+                                        # Get the first entry's row index in the DataFrame
+                                        first_entry_idx = youth_entries.index[0]
+                                        # Get the actual row number in the sheet (add 2: 1 for header, 1 for 0-based index)
+                                        sheet_row_num = first_entry_idx + 2
+                                        
+                                        # Get the raw row data directly from the sheet to preserve exact values
+                                        existing_row_values = worksheet1.row_values(sheet_row_num)
+                                        
+                                        # Create a dictionary mapping sheet headers to values
+                                        # Pad existing_row_values to match header length
+                                        while len(existing_row_values) < len(sheet_headers):
+                                            existing_row_values.append('')
+                                        
+                                        existing_data = dict(zip(sheet_headers, existing_row_values))
+                                        
+                                        # Prepare the new row data, preserving existing client info
+                                        new_row = []
+                                        for col in sheet_headers:
+                                            if col == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif col == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif col == 'Youth Name':
+                                                new_row.append(selected_youth.strip())
+                                            else:
+                                                # Preserve other client information from existing row
+                                                value = existing_data.get(col, '')
+                                                if value and str(value).strip():
+                                                    new_row.append(str(value))
+                                                else:
+                                                    new_row.append('')
+                                    else:
+                                        # If no previous entry exists, just add the note fields
+                                        new_row = []
+                                        for col in sheet_headers:
+                                            if col == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif col == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif col == 'Youth Name':
+                                                new_row.append(selected_youth.strip())
+                                            else:
+                                                new_row.append('')
                                     
                                     # Append to Google Sheets
-                                    worksheet1.append_row(new_row)
+                                    worksheet1.append_row(new_row, value_input_option='USER_ENTERED')
                                     
                                     # Clear cache to show updated data
                                     fetch_google_sheets_data.clear()
+                                    st.session_state.data_last_fetched = 0
                                     
                                     st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                    time.sleep(2)
                                     st.rerun()
                                     
                                 except Exception as e:
                                     st.error(f"❌ Error adding note: {str(e)}")
+                                    import traceback
+                                    st.code(traceback.format_exc())
                 else:
                     st.warning(f"No data found for youth: {selected_youth}")
 
@@ -1620,31 +1659,70 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Prepare the new row data
-                                    new_row_data = {
-                                        'Name of Client': selected_client.strip(),
-                                        'Day of Case Note': note_date_str,
-                                        'Case Notes': new_note.strip()
-                                    }
+                                    # Get the actual sheet headers (not cleaned DataFrame headers)
+                                    sheet_headers = worksheet2.row_values(1)
                                     
-                                    # Add empty values for other columns to maintain structure
-                                    for col in ipe_df.columns:
-                                        if col not in new_row_data:
-                                            new_row_data[col] = ''
-                                    
-                                    # Convert to list in the correct order
-                                    new_row = [new_row_data.get(col, '') for col in ipe_df.columns]
+                                    # Get the first entry for this client to preserve their information
+                                    client_entries = ipe_df[ipe_df['Name of Client'] == selected_client]
+                                    if not client_entries.empty:
+                                        # Get the first entry's row index in the DataFrame
+                                        first_entry_idx = client_entries.index[0]
+                                        # Get the actual row number in the sheet (add 2: 1 for header, 1 for 0-based index)
+                                        sheet_row_num = first_entry_idx + 2
+                                        
+                                        # Get the raw row data directly from the sheet to preserve exact values
+                                        existing_row_values = worksheet2.row_values(sheet_row_num)
+                                        
+                                        # Create a dictionary mapping sheet headers to values
+                                        # Pad existing_row_values to match header length
+                                        while len(existing_row_values) < len(sheet_headers):
+                                            existing_row_values.append('')
+                                        
+                                        existing_data = dict(zip(sheet_headers, existing_row_values))
+                                        
+                                        # Prepare the new row data, preserving existing client info
+                                        new_row = []
+                                        for col in sheet_headers:
+                                            if col == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif col == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif col == 'Name of Client':
+                                                new_row.append(selected_client.strip())
+                                            else:
+                                                # Preserve other client information from existing row
+                                                value = existing_data.get(col, '')
+                                                if value and str(value).strip():
+                                                    new_row.append(str(value))
+                                                else:
+                                                    new_row.append('')
+                                    else:
+                                        # If no previous entry exists, just add the note fields
+                                        new_row = []
+                                        for col in sheet_headers:
+                                            if col == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif col == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif col == 'Name of Client':
+                                                new_row.append(selected_client.strip())
+                                            else:
+                                                new_row.append('')
                                     
                                     # Append to Google Sheets
-                                    worksheet2.append_row(new_row)
+                                    worksheet2.append_row(new_row, value_input_option='USER_ENTERED')
                                     
                                     # Clear cache to show updated data
                                     fetch_google_sheets_data.clear()
+                                    st.session_state.data_last_fetched = 0
                                     
                                     st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                    time.sleep(2)
                                     st.rerun()
                                     
                                 except Exception as e:
                                     st.error(f"❌ Error adding note: {str(e)}")
+                                    import traceback
+                                    st.code(traceback.format_exc())
                 else:
                     st.warning(f"No data found for client: {selected_client}")
