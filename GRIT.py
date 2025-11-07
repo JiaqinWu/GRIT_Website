@@ -80,7 +80,7 @@ def fetch_google_sheets_data():
         else:
             grit_df = pd.DataFrame()
         
-        worksheet2 = spreadsheet1.worksheet('IPE')
+        worksheet2 = spreadsheet1.worksheet('Sheet2')
         
         # Get all values and handle duplicate headers
         ipe_values = worksheet2.get_all_values()
