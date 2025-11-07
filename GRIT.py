@@ -157,7 +157,7 @@ def get_worksheets():
     try:
         spreadsheet1 = client.open('Referral Information')
         worksheet1 = spreadsheet1.worksheet('GRIT')
-        worksheet2 = spreadsheet1.worksheet('IPE')
+        worksheet2 = spreadsheet1.worksheet('Sheet2')
         return worksheet1, worksheet2, None
     except Exception as e:
         return None, None, str(e)
