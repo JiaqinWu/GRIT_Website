@@ -970,8 +970,18 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers (same method as "Add New Referral")
-                                    sheet_headers = worksheet1.row_values(1)
+                                    # Get ALL sheet data to ensure we capture empty cells correctly
+                                    all_sheet_data = worksheet1.get_all_values()
+                                    if not all_sheet_data or len(all_sheet_data) < 1:
+                                        st.error("❌ Unable to read sheet data")
+                                        st.stop()
+                                    
+                                    # Get headers from first row (index 0)
+                                    sheet_headers = all_sheet_data[0]
+                                    # Remove trailing empty headers but keep leading ones
+                                    while sheet_headers and sheet_headers[-1] == '':
+                                        sheet_headers.pop()
+                                    
                                     if not sheet_headers:
                                         st.error("❌ Unable to read sheet headers")
                                         st.stop()
@@ -981,16 +991,23 @@ else:
                                     if not youth_entries.empty:
                                         # Get the first entry's row index in the DataFrame
                                         first_entry_idx = youth_entries.index[0]
-                                        # Get the actual row number in the sheet (row 1 is header, so add 2)
-                                        sheet_row_num = first_entry_idx + 2
+                                        # Get the actual row number in all_sheet_data (index 0 is header, so +1)
+                                        sheet_row_idx = first_entry_idx + 1
                                         
-                                        # Get the raw row data (same method as headers - row_values)
-                                        existing_row_values = worksheet1.row_values(sheet_row_num)
-                                        # Pad to match header length
+                                        # Get the raw row data from all_sheet_data (includes ALL cells including empty ones)
+                                        if sheet_row_idx < len(all_sheet_data):
+                                            existing_row_values = all_sheet_data[sheet_row_idx]
+                                        else:
+                                            existing_row_values = []
+                                        
+                                        # Ensure existing_row_values matches header length
+                                        # Remove trailing empty cells, then pad if needed
+                                        while existing_row_values and existing_row_values[-1] == '':
+                                            existing_row_values.pop()
                                         while len(existing_row_values) < len(sheet_headers):
                                             existing_row_values.append('')
                                         
-                                        # Map headers to values by index position - same approach as "Add New Referral"
+                                        # Map headers to values by index position - CRITICAL: indices must align perfectly
                                         existing_data = {}
                                         for i, header in enumerate(sheet_headers):
                                             if i < len(existing_row_values):
@@ -1673,8 +1690,18 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers (same method as "Add New Referral")
-                                    sheet_headers = worksheet2.row_values(1)
+                                    # Get ALL sheet data to ensure we capture empty cells correctly
+                                    all_sheet_data = worksheet2.get_all_values()
+                                    if not all_sheet_data or len(all_sheet_data) < 1:
+                                        st.error("❌ Unable to read sheet data")
+                                        st.stop()
+                                    
+                                    # Get headers from first row (index 0)
+                                    sheet_headers = all_sheet_data[0]
+                                    # Remove trailing empty headers but keep leading ones
+                                    while sheet_headers and sheet_headers[-1] == '':
+                                        sheet_headers.pop()
+                                    
                                     if not sheet_headers:
                                         st.error("❌ Unable to read sheet headers")
                                         st.stop()
@@ -1684,16 +1711,23 @@ else:
                                     if not client_entries.empty:
                                         # Get the first entry's row index in the DataFrame
                                         first_entry_idx = client_entries.index[0]
-                                        # Get the actual row number in the sheet (row 1 is header, so add 2)
-                                        sheet_row_num = first_entry_idx + 2
+                                        # Get the actual row number in all_sheet_data (index 0 is header, so +1)
+                                        sheet_row_idx = first_entry_idx + 1
                                         
-                                        # Get the raw row data (same method as headers - row_values)
-                                        existing_row_values = worksheet2.row_values(sheet_row_num)
-                                        # Pad to match header length
+                                        # Get the raw row data from all_sheet_data (includes ALL cells including empty ones)
+                                        if sheet_row_idx < len(all_sheet_data):
+                                            existing_row_values = all_sheet_data[sheet_row_idx]
+                                        else:
+                                            existing_row_values = []
+                                        
+                                        # Ensure existing_row_values matches header length
+                                        # Remove trailing empty cells, then pad if needed
+                                        while existing_row_values and existing_row_values[-1] == '':
+                                            existing_row_values.pop()
                                         while len(existing_row_values) < len(sheet_headers):
                                             existing_row_values.append('')
                                         
-                                        # Map headers to values by index position - same approach as "Add New Referral"
+                                        # Map headers to values by index position - CRITICAL: indices must align perfectly
                                         existing_data = {}
                                         for i, header in enumerate(sheet_headers):
                                             if i < len(existing_row_values):
