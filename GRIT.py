@@ -1698,27 +1698,9 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get headers - use get_all_values to see full structure including empty cells
-                                    all_data = worksheet2.get_all_values()
-                                    if not all_data or len(all_data) < 1:
-                                        st.error("❌ Unable to read sheet data")
-                                        st.stop()
-                                    
-                                    # Get headers from first row
-                                    header_row = all_data[0]
-                                    # Find where headers actually start (first non-empty cell)
-                                    header_start_idx = 0
-                                    for i, cell in enumerate(header_row):
-                                        if cell and str(cell).strip():
-                                            header_start_idx = i
-                                            break
-                                    
-                                    # Extract headers starting from first non-empty cell
-                                    sheet_headers = header_row[header_start_idx:]
-                                    # Remove trailing empty headers
-                                    while sheet_headers and (not sheet_headers[-1] or not str(sheet_headers[-1]).strip()):
-                                        sheet_headers.pop()
-                                    
+                                    # Use EXACT same method as "Add New Referral" for IPE - row_values(1)
+                                    # This works for "Add New Referral", so it should work here too
+                                    sheet_headers = worksheet2.row_values(1)
                                     if not sheet_headers:
                                         st.error("❌ Unable to read sheet headers")
                                         st.stop()
@@ -1726,29 +1708,21 @@ else:
                                     # Get the first entry for this client to preserve their information
                                     client_entries = ipe_df[ipe_df['Name of Client'] == selected_client]
                                     if not client_entries.empty:
-                                        # Get existing row data - use same method to find where data starts
+                                        # Get existing row data using row_values - same method as headers
                                         first_entry_idx = client_entries.index[0]
-                                        sheet_row_idx = first_entry_idx + 1  # +1 because all_data[0] is header
+                                        sheet_row_num = first_entry_idx + 2
+                                        existing_row_values = worksheet2.row_values(sheet_row_num)
                                         
-                                        if sheet_row_idx < len(all_data):
-                                            existing_row = all_data[sheet_row_idx]
-                                            # Extract data starting from same position as headers
-                                            existing_row_values = existing_row[header_start_idx:header_start_idx + len(sheet_headers)]
-                                            # Pad if needed
-                                            while len(existing_row_values) < len(sheet_headers):
-                                                existing_row_values.append('')
-                                        else:
-                                            existing_row_values = [''] * len(sheet_headers)
-                                        
-                                        # Build dictionary from existing row - now properly aligned
+                                        # Build dictionary from existing row - match headers to values by position
+                                        # row_values returns values in the same order as headers from row_values(1)
                                         existing_data = {}
                                         for i, header in enumerate(sheet_headers):
                                             if i < len(existing_row_values):
-                                                existing_data[header] = existing_row_values[i] if existing_row_values[i] else ''
+                                                existing_data[header] = existing_row_values[i]
                                             else:
                                                 existing_data[header] = ''
                                         
-                                        # Build new_row_data dictionary
+                                        # Build new_row_data dictionary - EXACT same approach as "Add New Referral"
                                         new_row_data = {
                                             'Day of Case Note': note_date_str,
                                             'Case Notes': new_note.strip(),
@@ -1764,11 +1738,8 @@ else:
                                                 else:
                                                     new_row_data[header] = ''
                                         
-                                        # Convert to list in exact header order
-                                        new_row_content = [new_row_data.get(col, '') for col in sheet_headers]
-                                        
-                                        # Prepend empty cells to account for header offset
-                                        new_row = [''] * header_start_idx + new_row_content
+                                        # Convert to list in exact header order - EXACT same as "Add New Referral"
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     else:
                                         # If no previous entry exists
                                         new_row_data = {
@@ -1781,13 +1752,10 @@ else:
                                             if header not in new_row_data:
                                                 new_row_data[header] = ''
                                         
-                                        # Convert to list in exact header order
-                                        new_row_content = [new_row_data.get(col, '') for col in sheet_headers]
-                                        
-                                        # Prepend empty cells to account for header offset
-                                        new_row = [''] * header_start_idx + new_row_content
+                                        # Convert to list in exact header order - EXACT same as "Add New Referral"
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     
-                                    # Append to Google Sheets
+                                    # Append to Google Sheets - EXACT same as "Add New Referral"
                                     worksheet2.append_row(new_row, value_input_option='USER_ENTERED')
                                     
                                     # Clear cache to show updated data
