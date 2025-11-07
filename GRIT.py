@@ -218,21 +218,39 @@ def send_email_mailjet(to_email, subject, body):
         st.error(f"❗ Mailjet error: {e}")
 
 
-# --- Demo user database
-USERS = {
-    "JWu@pwcgov.org": {
-        "GRIT": {"password": "Qin88251216", "name": "Jiaqin Wu"},
-        "IPE": {"password": "Qin88251216", "name": "Jiaqin Wu"}
-    },
-    "TYasin1@pwcgov.org": {
-        "GRIT": {"password": "TYasin1", "name": "Tauheeda Martin Yasin"},
-        "IPE": {"password": "TYasin1", "name": "Tauheeda Martin Yasin"}
-    },
-    "jkooyoomjian@pwcgov.org": {
-        "GRIT": {"password": "jkooyoomjian", "name": "Jennifer Kooyoomijian"},
-        "IPE": {"password": "jkooyoomjian", "name": "Jennifer Kooyoomiji"}
-    }
-}
+# --- Load user database from Streamlit secrets
+def load_users():
+    """Load users from Streamlit secrets"""
+    try:
+        # Access nested secrets structure
+        if "users" not in st.secrets:
+            st.error("⚠️ User credentials not found in secrets. Please configure secrets.toml file.")
+            st.stop()
+            return {}
+        
+        users_secret = st.secrets["users"]
+        # Convert secrets structure to the same format as before
+        users = {}
+        for email, roles in users_secret.items():
+            users[email] = {}
+            for role, creds in roles.items():
+                # Streamlit secrets are dict-like, so we can access directly
+                users[email][role] = {
+                    "password": str(creds.get("password", "")),
+                    "name": str(creds.get("name", ""))
+                }
+        return users
+    except KeyError:
+        st.error("⚠️ User credentials not properly configured in secrets. Please check secrets.toml file.")
+        st.stop()
+        return {}
+    except Exception as e:
+        st.error(f"❌ Error loading user credentials: {str(e)}")
+        st.info("💡 Make sure your .streamlit/secrets.toml file is properly configured.")
+        st.stop()
+        return {}
+
+USERS = load_users()
 
 # --- Initialize session state
 if "authenticated" not in st.session_state:
