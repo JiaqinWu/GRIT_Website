@@ -970,18 +970,8 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers - use batch_get to ensure we get ALL columns
-                                    # Get a large range to ensure we capture all headers (A1:Z1 should be enough)
-                                    header_range = worksheet1.batch_get(['A1:Z1'])
-                                    if header_range and len(header_range) > 0 and len(header_range[0]) > 0:
-                                        sheet_headers = header_range[0][0]  # First range, first row
-                                        # Remove trailing empty strings but keep leading ones (empty columns)
-                                        while sheet_headers and sheet_headers[-1] == '':
-                                            sheet_headers.pop()
-                                    else:
-                                        # Fallback to row_values
-                                        sheet_headers = worksheet1.row_values(1)
-                                    
+                                    # Get the actual sheet headers (same method as "Add New Referral")
+                                    sheet_headers = worksheet1.row_values(1)
                                     if not sheet_headers:
                                         st.error("❌ Unable to read sheet headers")
                                         st.stop()
@@ -994,24 +984,13 @@ else:
                                         # Get the actual row number in the sheet (row 1 is header, so add 2)
                                         sheet_row_num = first_entry_idx + 2
                                         
-                                        # Get the raw row data using batch_get to ensure we get ALL columns including empty ones
-                                        # Use the same range as headers (A to Z) to ensure perfect alignment
-                                        row_range = worksheet1.batch_get([f'A{sheet_row_num}:Z{sheet_row_num}'])
-                                        if row_range and len(row_range) > 0 and len(row_range[0]) > 0:
-                                            existing_row_values = row_range[0][0]
-                                            # Pad to match header length (remove trailing empties first)
-                                            while existing_row_values and existing_row_values[-1] == '':
-                                                existing_row_values.pop()
-                                            while len(existing_row_values) < len(sheet_headers):
-                                                existing_row_values.append('')
-                                        else:
-                                            # Fallback: use row_values and pad
-                                            existing_row_values = worksheet1.row_values(sheet_row_num)
-                                            while len(existing_row_values) < len(sheet_headers):
-                                                existing_row_values.append('')
+                                        # Get the raw row data (same method as headers - row_values)
+                                        existing_row_values = worksheet1.row_values(sheet_row_num)
+                                        # Pad to match header length
+                                        while len(existing_row_values) < len(sheet_headers):
+                                            existing_row_values.append('')
                                         
-                                        # Map headers to values by index position to preserve column order
-                                        # Both lists should now have the same length and align perfectly
+                                        # Map headers to values by index position - same approach as "Add New Referral"
                                         existing_data = {}
                                         for i, header in enumerate(sheet_headers):
                                             if i < len(existing_row_values):
@@ -1019,35 +998,40 @@ else:
                                             else:
                                                 existing_data[header] = ''
                                         
-                                        # Build new row in the EXACT same order as sheet_headers
-                                        # This ensures column A maps to index 0, column B to index 1, etc.
-                                        new_row = []
-                                        for i, header in enumerate(sheet_headers):
+                                        # Build new_row_data dictionary (same method as "Add New Referral")
+                                        new_row_data = {}
+                                        for header in sheet_headers:
                                             if header == 'Day of Case Note':
-                                                new_row.append(note_date_str)
+                                                new_row_data[header] = note_date_str
                                             elif header == 'Case Notes':
-                                                new_row.append(new_note.strip())
+                                                new_row_data[header] = new_note.strip()
                                             elif header == 'Youth Name':
-                                                new_row.append(selected_youth.strip())
+                                                new_row_data[header] = selected_youth.strip()
                                             else:
                                                 # Preserve other client information from existing row
                                                 value = existing_data.get(header, '')
                                                 if value and str(value).strip():
-                                                    new_row.append(str(value))
+                                                    new_row_data[header] = str(value)
                                                 else:
-                                                    new_row.append('')
+                                                    new_row_data[header] = ''
+                                        
+                                        # Convert to list in exact header order (same as "Add New Referral")
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     else:
-                                        # If no previous entry exists, build row matching header order exactly
-                                        new_row = []
+                                        # If no previous entry exists, use dictionary approach (same as "Add New Referral")
+                                        new_row_data = {}
                                         for header in sheet_headers:
                                             if header == 'Day of Case Note':
-                                                new_row.append(note_date_str)
+                                                new_row_data[header] = note_date_str
                                             elif header == 'Case Notes':
-                                                new_row.append(new_note.strip())
+                                                new_row_data[header] = new_note.strip()
                                             elif header == 'Youth Name':
-                                                new_row.append(selected_youth.strip())
+                                                new_row_data[header] = selected_youth.strip()
                                             else:
-                                                new_row.append('')
+                                                new_row_data[header] = ''
+                                        
+                                        # Convert to list in exact header order (same as "Add New Referral")
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     
                                     # Append to Google Sheets with proper value input option
                                     # append_row automatically starts at column A, so new_row[0] goes to A, new_row[1] to B, etc.
@@ -1689,18 +1673,8 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers - use batch_get to ensure we get ALL columns
-                                    # Get a large range to ensure we capture all headers (A1:Z1 should be enough)
-                                    header_range = worksheet2.batch_get(['A1:Z1'])
-                                    if header_range and len(header_range) > 0 and len(header_range[0]) > 0:
-                                        sheet_headers = header_range[0][0]  # First range, first row
-                                        # Remove trailing empty strings but keep leading ones (empty columns)
-                                        while sheet_headers and sheet_headers[-1] == '':
-                                            sheet_headers.pop()
-                                    else:
-                                        # Fallback to row_values
-                                        sheet_headers = worksheet2.row_values(1)
-                                    
+                                    # Get the actual sheet headers (same method as "Add New Referral")
+                                    sheet_headers = worksheet2.row_values(1)
                                     if not sheet_headers:
                                         st.error("❌ Unable to read sheet headers")
                                         st.stop()
@@ -1713,24 +1687,13 @@ else:
                                         # Get the actual row number in the sheet (row 1 is header, so add 2)
                                         sheet_row_num = first_entry_idx + 2
                                         
-                                        # Get the raw row data using batch_get to ensure we get ALL columns including empty ones
-                                        # Use the same range as headers (A to Z) to ensure perfect alignment
-                                        row_range = worksheet2.batch_get([f'A{sheet_row_num}:Z{sheet_row_num}'])
-                                        if row_range and len(row_range) > 0 and len(row_range[0]) > 0:
-                                            existing_row_values = row_range[0][0]
-                                            # Pad to match header length (remove trailing empties first)
-                                            while existing_row_values and existing_row_values[-1] == '':
-                                                existing_row_values.pop()
-                                            while len(existing_row_values) < len(sheet_headers):
-                                                existing_row_values.append('')
-                                        else:
-                                            # Fallback: use row_values and pad
-                                            existing_row_values = worksheet2.row_values(sheet_row_num)
-                                            while len(existing_row_values) < len(sheet_headers):
-                                                existing_row_values.append('')
+                                        # Get the raw row data (same method as headers - row_values)
+                                        existing_row_values = worksheet2.row_values(sheet_row_num)
+                                        # Pad to match header length
+                                        while len(existing_row_values) < len(sheet_headers):
+                                            existing_row_values.append('')
                                         
-                                        # Map headers to values by index position to preserve column order
-                                        # Both lists should now have the same length and align perfectly
+                                        # Map headers to values by index position - same approach as "Add New Referral"
                                         existing_data = {}
                                         for i, header in enumerate(sheet_headers):
                                             if i < len(existing_row_values):
@@ -1738,35 +1701,40 @@ else:
                                             else:
                                                 existing_data[header] = ''
                                         
-                                        # Build new row in the EXACT same order as sheet_headers
-                                        # This ensures column A maps to index 0, column B to index 1, etc.
-                                        new_row = []
-                                        for i, header in enumerate(sheet_headers):
+                                        # Build new_row_data dictionary (same method as "Add New Referral")
+                                        new_row_data = {}
+                                        for header in sheet_headers:
                                             if header == 'Day of Case Note':
-                                                new_row.append(note_date_str)
+                                                new_row_data[header] = note_date_str
                                             elif header == 'Case Notes':
-                                                new_row.append(new_note.strip())
+                                                new_row_data[header] = new_note.strip()
                                             elif header == 'Name of Client':
-                                                new_row.append(selected_client.strip())
+                                                new_row_data[header] = selected_client.strip()
                                             else:
                                                 # Preserve other client information from existing row
                                                 value = existing_data.get(header, '')
                                                 if value and str(value).strip():
-                                                    new_row.append(str(value))
+                                                    new_row_data[header] = str(value)
                                                 else:
-                                                    new_row.append('')
+                                                    new_row_data[header] = ''
+                                        
+                                        # Convert to list in exact header order (same as "Add New Referral")
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     else:
-                                        # If no previous entry exists, build row matching header order exactly
-                                        new_row = []
+                                        # If no previous entry exists, use dictionary approach (same as "Add New Referral")
+                                        new_row_data = {}
                                         for header in sheet_headers:
                                             if header == 'Day of Case Note':
-                                                new_row.append(note_date_str)
+                                                new_row_data[header] = note_date_str
                                             elif header == 'Case Notes':
-                                                new_row.append(new_note.strip())
+                                                new_row_data[header] = new_note.strip()
                                             elif header == 'Name of Client':
-                                                new_row.append(selected_client.strip())
+                                                new_row_data[header] = selected_client.strip()
                                             else:
-                                                new_row.append('')
+                                                new_row_data[header] = ''
+                                        
+                                        # Convert to list in exact header order (same as "Add New Referral")
+                                        new_row = [new_row_data.get(col, '') for col in sheet_headers]
                                     
                                     # Append to Google Sheets with proper value input option
                                     # append_row automatically starts at column A, so new_row[0] goes to A, new_row[1] to B, etc.
