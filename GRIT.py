@@ -970,81 +970,96 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers (not cleaned DataFrame headers)
-                                    # Use get_all_values to ensure we get all columns, including empty ones
-                                    all_sheet_data = worksheet1.get_all_values()
-                                    if not all_sheet_data:
-                                        st.error("❌ Unable to read sheet data")
-                                        st.stop()
+                                    # Get the actual sheet headers - use batch_get to ensure we get ALL columns
+                                    # Get a large range to ensure we capture all headers (A1:Z1 should be enough)
+                                    header_range = worksheet1.batch_get(['A1:Z1'])
+                                    if header_range and len(header_range) > 0 and len(header_range[0]) > 0:
+                                        sheet_headers = header_range[0][0]  # First range, first row
+                                        # Remove trailing empty strings but keep leading ones (empty columns)
+                                        while sheet_headers and sheet_headers[-1] == '':
+                                            sheet_headers.pop()
                                     else:
-                                        sheet_headers = all_sheet_data[0]
+                                        # Fallback to row_values
+                                        sheet_headers = worksheet1.row_values(1)
+                                    
+                                    if not sheet_headers:
+                                        st.error("❌ Unable to read sheet headers")
+                                        st.stop()
+                                    
+                                    # Get the first entry for this youth to preserve their information
+                                    youth_entries = grit_df[grit_df['Youth Name'] == selected_youth]
+                                    if not youth_entries.empty:
+                                        # Get the first entry's row index in the DataFrame
+                                        first_entry_idx = youth_entries.index[0]
+                                        # Get the actual row number in the sheet (row 1 is header, so add 2)
+                                        sheet_row_num = first_entry_idx + 2
                                         
-                                        # Get the first entry for this youth to preserve their information
-                                        youth_entries = grit_df[grit_df['Youth Name'] == selected_youth]
-                                        if not youth_entries.empty:
-                                            # Get the first entry's row index in the DataFrame
-                                            first_entry_idx = youth_entries.index[0]
-                                            # Get the actual row number in the sheet
-                                            # DataFrame rows start at 0, which corresponds to row 2 in sheet (row 1 is header)
-                                            sheet_row_num = first_entry_idx + 1  # +1 because all_sheet_data[0] is header
-                                            
-                                            # Get the raw row data directly from the sheet
-                                            if sheet_row_num < len(all_sheet_data):
-                                                existing_row_values = all_sheet_data[sheet_row_num]
-                                            else:
-                                                existing_row_values = []
-                                            
-                                            # Ensure existing_row_values has the same length as headers
+                                        # Get the raw row data using batch_get to ensure we get ALL columns including empty ones
+                                        # Use the same range as headers (A to Z) to ensure perfect alignment
+                                        row_range = worksheet1.batch_get([f'A{sheet_row_num}:Z{sheet_row_num}'])
+                                        if row_range and len(row_range) > 0 and len(row_range[0]) > 0:
+                                            existing_row_values = row_range[0][0]
+                                            # Pad to match header length (remove trailing empties first)
+                                            while existing_row_values and existing_row_values[-1] == '':
+                                                existing_row_values.pop()
                                             while len(existing_row_values) < len(sheet_headers):
                                                 existing_row_values.append('')
-                                            
-                                            # Create a dictionary mapping sheet headers to values
-                                            existing_data = {}
-                                            for i, header in enumerate(sheet_headers):
-                                                if i < len(existing_row_values):
-                                                    existing_data[header] = existing_row_values[i]
-                                                else:
-                                                    existing_data[header] = ''
-                                            
-                                            # Prepare the new row data, preserving existing client info
-                                            new_row = []
-                                            for header in sheet_headers:
-                                                if header == 'Day of Case Note':
-                                                    new_row.append(note_date_str)
-                                                elif header == 'Case Notes':
-                                                    new_row.append(new_note.strip())
-                                                elif header == 'Youth Name':
-                                                    new_row.append(selected_youth.strip())
-                                                else:
-                                                    # Preserve other client information from existing row
-                                                    value = existing_data.get(header, '')
-                                                    if value and str(value).strip():
-                                                        new_row.append(str(value))
-                                                    else:
-                                                        new_row.append('')
                                         else:
-                                            # If no previous entry exists, just add the note fields
-                                            new_row = []
-                                            for header in sheet_headers:
-                                                if header == 'Day of Case Note':
-                                                    new_row.append(note_date_str)
-                                                elif header == 'Case Notes':
-                                                    new_row.append(new_note.strip())
-                                                elif header == 'Youth Name':
-                                                    new_row.append(selected_youth.strip())
+                                            # Fallback: use row_values and pad
+                                            existing_row_values = worksheet1.row_values(sheet_row_num)
+                                            while len(existing_row_values) < len(sheet_headers):
+                                                existing_row_values.append('')
+                                        
+                                        # Map headers to values by index position to preserve column order
+                                        # Both lists should now have the same length and align perfectly
+                                        existing_data = {}
+                                        for i, header in enumerate(sheet_headers):
+                                            if i < len(existing_row_values):
+                                                existing_data[header] = existing_row_values[i]
+                                            else:
+                                                existing_data[header] = ''
+                                        
+                                        # Build new row in the EXACT same order as sheet_headers
+                                        # This ensures column A maps to index 0, column B to index 1, etc.
+                                        new_row = []
+                                        for i, header in enumerate(sheet_headers):
+                                            if header == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif header == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif header == 'Youth Name':
+                                                new_row.append(selected_youth.strip())
+                                            else:
+                                                # Preserve other client information from existing row
+                                                value = existing_data.get(header, '')
+                                                if value and str(value).strip():
+                                                    new_row.append(str(value))
                                                 else:
                                                     new_row.append('')
-                                        
-                                        # Append to Google Sheets with proper value input option
-                                        worksheet1.append_row(new_row, value_input_option='USER_ENTERED')
-                                        
-                                        # Clear cache to show updated data
-                                        fetch_google_sheets_data.clear()
-                                        st.session_state.data_last_fetched = 0
-                                        
-                                        st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
-                                        time.sleep(2)
-                                        st.rerun()
+                                    else:
+                                        # If no previous entry exists, build row matching header order exactly
+                                        new_row = []
+                                        for header in sheet_headers:
+                                            if header == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif header == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif header == 'Youth Name':
+                                                new_row.append(selected_youth.strip())
+                                            else:
+                                                new_row.append('')
+                                    
+                                    # Append to Google Sheets with proper value input option
+                                    # append_row automatically starts at column A, so new_row[0] goes to A, new_row[1] to B, etc.
+                                    worksheet1.append_row(new_row, value_input_option='USER_ENTERED')
+                                    
+                                    # Clear cache to show updated data
+                                    fetch_google_sheets_data.clear()
+                                    st.session_state.data_last_fetched = 0
+                                    
+                                    st.success(f"✅ Note added successfully for {selected_youth} on {note_date_str}")
+                                    time.sleep(2)
+                                    st.rerun()
                                     
                                 except Exception as e:
                                     st.error(f"❌ Error adding note: {str(e)}")
@@ -1674,81 +1689,96 @@ else:
                                     # Format the date as string (4-digit year)
                                     note_date_str = note_date.strftime('%m/%d/%Y')
                                     
-                                    # Get the actual sheet headers (not cleaned DataFrame headers)
-                                    # Use get_all_values to ensure we get all columns, including empty ones
-                                    all_sheet_data = worksheet2.get_all_values()
-                                    if not all_sheet_data:
-                                        st.error("❌ Unable to read sheet data")
-                                        st.stop()
+                                    # Get the actual sheet headers - use batch_get to ensure we get ALL columns
+                                    # Get a large range to ensure we capture all headers (A1:Z1 should be enough)
+                                    header_range = worksheet2.batch_get(['A1:Z1'])
+                                    if header_range and len(header_range) > 0 and len(header_range[0]) > 0:
+                                        sheet_headers = header_range[0][0]  # First range, first row
+                                        # Remove trailing empty strings but keep leading ones (empty columns)
+                                        while sheet_headers and sheet_headers[-1] == '':
+                                            sheet_headers.pop()
                                     else:
-                                        sheet_headers = all_sheet_data[0]
+                                        # Fallback to row_values
+                                        sheet_headers = worksheet2.row_values(1)
+                                    
+                                    if not sheet_headers:
+                                        st.error("❌ Unable to read sheet headers")
+                                        st.stop()
+                                    
+                                    # Get the first entry for this client to preserve their information
+                                    client_entries = ipe_df[ipe_df['Name of Client'] == selected_client]
+                                    if not client_entries.empty:
+                                        # Get the first entry's row index in the DataFrame
+                                        first_entry_idx = client_entries.index[0]
+                                        # Get the actual row number in the sheet (row 1 is header, so add 2)
+                                        sheet_row_num = first_entry_idx + 2
                                         
-                                        # Get the first entry for this client to preserve their information
-                                        client_entries = ipe_df[ipe_df['Name of Client'] == selected_client]
-                                        if not client_entries.empty:
-                                            # Get the first entry's row index in the DataFrame
-                                            first_entry_idx = client_entries.index[0]
-                                            # Get the actual row number in the sheet
-                                            # DataFrame rows start at 0, which corresponds to row 2 in sheet (row 1 is header)
-                                            sheet_row_num = first_entry_idx + 1  # +1 because all_sheet_data[0] is header
-                                            
-                                            # Get the raw row data directly from the sheet
-                                            if sheet_row_num < len(all_sheet_data):
-                                                existing_row_values = all_sheet_data[sheet_row_num]
-                                            else:
-                                                existing_row_values = []
-                                            
-                                            # Ensure existing_row_values has the same length as headers
+                                        # Get the raw row data using batch_get to ensure we get ALL columns including empty ones
+                                        # Use the same range as headers (A to Z) to ensure perfect alignment
+                                        row_range = worksheet2.batch_get([f'A{sheet_row_num}:Z{sheet_row_num}'])
+                                        if row_range and len(row_range) > 0 and len(row_range[0]) > 0:
+                                            existing_row_values = row_range[0][0]
+                                            # Pad to match header length (remove trailing empties first)
+                                            while existing_row_values and existing_row_values[-1] == '':
+                                                existing_row_values.pop()
                                             while len(existing_row_values) < len(sheet_headers):
                                                 existing_row_values.append('')
-                                            
-                                            # Create a dictionary mapping sheet headers to values
-                                            existing_data = {}
-                                            for i, header in enumerate(sheet_headers):
-                                                if i < len(existing_row_values):
-                                                    existing_data[header] = existing_row_values[i]
-                                                else:
-                                                    existing_data[header] = ''
-                                            
-                                            # Prepare the new row data, preserving existing client info
-                                            new_row = []
-                                            for header in sheet_headers:
-                                                if header == 'Day of Case Note':
-                                                    new_row.append(note_date_str)
-                                                elif header == 'Case Notes':
-                                                    new_row.append(new_note.strip())
-                                                elif header == 'Name of Client':
-                                                    new_row.append(selected_client.strip())
-                                                else:
-                                                    # Preserve other client information from existing row
-                                                    value = existing_data.get(header, '')
-                                                    if value and str(value).strip():
-                                                        new_row.append(str(value))
-                                                    else:
-                                                        new_row.append('')
                                         else:
-                                            # If no previous entry exists, just add the note fields
-                                            new_row = []
-                                            for header in sheet_headers:
-                                                if header == 'Day of Case Note':
-                                                    new_row.append(note_date_str)
-                                                elif header == 'Case Notes':
-                                                    new_row.append(new_note.strip())
-                                                elif header == 'Name of Client':
-                                                    new_row.append(selected_client.strip())
+                                            # Fallback: use row_values and pad
+                                            existing_row_values = worksheet2.row_values(sheet_row_num)
+                                            while len(existing_row_values) < len(sheet_headers):
+                                                existing_row_values.append('')
+                                        
+                                        # Map headers to values by index position to preserve column order
+                                        # Both lists should now have the same length and align perfectly
+                                        existing_data = {}
+                                        for i, header in enumerate(sheet_headers):
+                                            if i < len(existing_row_values):
+                                                existing_data[header] = existing_row_values[i]
+                                            else:
+                                                existing_data[header] = ''
+                                        
+                                        # Build new row in the EXACT same order as sheet_headers
+                                        # This ensures column A maps to index 0, column B to index 1, etc.
+                                        new_row = []
+                                        for i, header in enumerate(sheet_headers):
+                                            if header == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif header == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif header == 'Name of Client':
+                                                new_row.append(selected_client.strip())
+                                            else:
+                                                # Preserve other client information from existing row
+                                                value = existing_data.get(header, '')
+                                                if value and str(value).strip():
+                                                    new_row.append(str(value))
                                                 else:
                                                     new_row.append('')
-                                        
-                                        # Append to Google Sheets with proper value input option
-                                        worksheet2.append_row(new_row, value_input_option='USER_ENTERED')
-                                        
-                                        # Clear cache to show updated data
-                                        fetch_google_sheets_data.clear()
-                                        st.session_state.data_last_fetched = 0
-                                        
-                                        st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
-                                        time.sleep(2)
-                                        st.rerun()
+                                    else:
+                                        # If no previous entry exists, build row matching header order exactly
+                                        new_row = []
+                                        for header in sheet_headers:
+                                            if header == 'Day of Case Note':
+                                                new_row.append(note_date_str)
+                                            elif header == 'Case Notes':
+                                                new_row.append(new_note.strip())
+                                            elif header == 'Name of Client':
+                                                new_row.append(selected_client.strip())
+                                            else:
+                                                new_row.append('')
+                                    
+                                    # Append to Google Sheets with proper value input option
+                                    # append_row automatically starts at column A, so new_row[0] goes to A, new_row[1] to B, etc.
+                                    worksheet2.append_row(new_row, value_input_option='USER_ENTERED')
+                                    
+                                    # Clear cache to show updated data
+                                    fetch_google_sheets_data.clear()
+                                    st.session_state.data_last_fetched = 0
+                                    
+                                    st.success(f"✅ Note added successfully for {selected_client} on {note_date_str}")
+                                    time.sleep(2)
+                                    st.rerun()
                                     
                                 except Exception as e:
                                     st.error(f"❌ Error adding note: {str(e)}")
